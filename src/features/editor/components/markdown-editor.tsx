@@ -1,14 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
+
 import Skeleton from "@mui/material/Skeleton";
+
 import type { MarkdownEditorProps } from "@/features/editor/types";
 
 const VditorEditor = dynamic(
   () => import("./vditor-editor").then((module) => module.VditorEditor),
   {
     ssr: false,
-    loading: () => <Skeleton className="markdown-editor-loading" variant="rounded" height={480} />,
+    loading: () => (
+      <Skeleton className="me-loading" variant="rounded" height={480} />
+    ),
   },
 );
 

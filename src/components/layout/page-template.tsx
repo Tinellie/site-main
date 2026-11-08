@@ -1,7 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+
 import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
 
@@ -12,6 +14,13 @@ export interface PageTemplateProps {
   removeMargin?: boolean;
 }
 
+const pageLayout = {
+  minimumContentWidth: 320,
+  gutter: 3,
+  horizontalGutter: 6,
+  minimumGutter: 1,
+} as const;
+
 export function PageTemplate({
   title,
   hideTitle = false,
@@ -21,15 +30,23 @@ export function PageTemplate({
   const hasTitle = Boolean(title?.trim());
 
   return (
-    <Box
+    <Container
       component="main"
       id="main-content"
-      aria-labelledby={hasTitle ? "page-title" : undefined}
-      sx={{ flex: 1 }}
+      aria-labelledby={hasTitle ? "pt-title" : undefined}
+      disableGutters
+      maxWidth={removeMargin ? false : "lg"}
+      sx={(theme) => ({
+        flex: 1,
+        // Auto margins center the container; maxWidth uses MUI's lg breakpoint.
+        width: removeMargin
+          ? "100%"
+          : `max(min(${pageLayout.minimumContentWidth}px, calc(100% - ${theme.spacing(pageLayout.minimumGutter * 2)})), calc(100% - ${theme.spacing(pageLayout.horizontalGutter * 2)}))`,
+      })}
     >
       {hasTitle && (
         <Typography
-          id="page-title"
+          id="pt-title"
           component="h1"
           variant="h4"
           align="center"
@@ -38,9 +55,9 @@ export function PageTemplate({
           {title}
         </Typography>
       )}
-      <Box id="page-content" sx={{ m: removeMargin ? 0 : 3 }}>
+      <Box id="pt-content" sx={{ my: removeMargin ? 0 : pageLayout.gutter }}>
         {children}
       </Box>
-    </Box>
+    </Container>
   );
 }

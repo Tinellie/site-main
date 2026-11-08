@@ -2,6 +2,7 @@ import "server-only";
 
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool, type Pool } from "mysql2/promise";
+
 import * as schema from "@/db/schema";
 
 const databaseGlobal = globalThis as typeof globalThis & {

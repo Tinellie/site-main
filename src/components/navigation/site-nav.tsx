@@ -1,6 +1,7 @@
 "use client";
 
 import NextLink from "next/link";
+
 import AppBar from "@mui/material/AppBar";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
@@ -8,7 +9,9 @@ import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+
 import { usePathname } from "next/navigation";
+
 import { siteConfig } from "@/config/site";
 
 export interface NavItem {
@@ -28,7 +31,7 @@ export function SiteNav({ items }: SiteNavProps) {
     return group.map(({ label, href }) => (
       <Button
         key={href}
-        className="site-nav-button"
+        className="sn-button"
         component={NextLink}
         href={href}
         size="small"
@@ -43,20 +46,35 @@ export function SiteNav({ items }: SiteNavProps) {
 
   return (
     <AppBar id="site-header" component="header" position="static">
-      <Container id="site-nav-container">
+      <Container id="sn-container">
         <Toolbar
-          id="site-nav"
+          id="sn-nav"
           component="nav"
           aria-label="主导航"
           disableGutters
-          sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", gap: 1 }}
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+            gap: 1,
+          }}
         >
-          <Stack id="site-nav-left" direction="row" useFlexGap sx={{ flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <Stack
+            id="sn-left"
+            direction="row"
+            useFlexGap
+            sx={{ flexWrap: "wrap", justifyContent: "flex-end" }}
+          >
             {renderItems(items.slice(0, midpoint))}
           </Stack>
-          <Typography id="site-nav-title" component="div" variant="h6" sx={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+
+          <Typography
+            id="sn-title"
+            component="div"
+            variant="h6"
+            sx={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+          >
             <Link
-              id="site-nav-home-link"
+              id="sn-home-link"
               component={NextLink}
               href="/"
               aria-label={`${siteConfig.title}首页`}
@@ -64,7 +82,13 @@ export function SiteNav({ items }: SiteNavProps) {
               {siteConfig.title}
             </Link>
           </Typography>
-          <Stack id="site-nav-right" direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
+
+          <Stack
+            id="sn-right"
+            direction="row"
+            useFlexGap
+            sx={{ flexWrap: "wrap" }}
+          >
             {renderItems(items.slice(midpoint))}
           </Stack>
         </Toolbar>

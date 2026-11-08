@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
+
 import Vditor from "vditor";
 // Vditor's own stylesheet is required; application styles live in MUI theme/sx.
 import "vditor/dist/index.css";
+
 import type { MarkdownEditorProps } from "@/features/editor/types";
 
 export function VditorEditor({
@@ -28,10 +31,12 @@ export function VditorEditor({
 
     let active = true;
     let ready = false;
+
     // Give each mount its own node, including React Strict Mode remounts.
     const element = document.createElement("div");
-    element.className = "vditor-editor-instance";
+    element.className = "ve-instance";
     containerRef.current.appendChild(element);
+
     const editor = new Vditor(element, {
       value: initialValueRef.current,
       minHeight: 480,
@@ -76,7 +81,7 @@ export function VditorEditor({
 
   return (
     <Box className="markdown-editor">
-      <div className="markdown-editor-mount" ref={containerRef} />
+      <div className="me-mount" ref={containerRef} />
     </Box>
   );
 }

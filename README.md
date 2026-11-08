@@ -2,7 +2,9 @@
 
 基于 TypeScript、React、Next.js App Router、MUI、MySQL、Drizzle ORM、Vditor 和 gray-matter。
 
-当前包含 Home、Connect、Works、Blog、Gallery 五个页面，均只有标题和空白正文。没有示例文章、登录页、管理后台或公开写入接口。
+当前包含 Home、Connect、Works、Blog、Gallery 五个页面；Connect、Works、Blog 已加入卡片与筛选测试数据，Home 和 Gallery 仍保留空白正文。没有登录页、管理后台或公开写入接口。
+
+组件调用层级、属性、测试常数、图片索引与关键 DOM 标识见 [docs/component-map.md](docs/component-map.md)。
 
 ## 本地开发
 
@@ -46,6 +48,7 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 - `hideTitle`：默认 false；通过 MUI `visuallyHidden` 保留 DOM 中的 h1，但不占正常布局空间。它不负责鉴权或后台数据。
 - `children`：页面内容。
 - `removeMargin`：默认 false；设为 true 时去掉内容容器四周外边距，使内容可使用全部可用宽度。不会自动隐藏导航或让内容高度撑满视口。
+- `removeMargin`：默认 false；main 使用 MUI Container 居中，最大宽度为 lg（默认 1200px），通常左右留白各 48px。可用窗口宽度在 336–416px 时内容保持 320px，留白从 8px 增至 48px；小于 336px 时保持各 8px 留白，内容随窗口缩小以避免溢出。内容上下外边距为 24px。设为 true 时取消最大宽度、左右留白和内容上下外边距，使用完整可用宽度。不会自动隐藏导航或移除标题本身的顶部间距。
 
 页面共用的单例节点使用 ID，导航按钮和可重复挂载的编辑器使用 className。Provider、路由和页面组件直接复用子组件的 DOM，不为添加标识额外创建包装元素。
 
