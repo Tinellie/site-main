@@ -17,6 +17,11 @@ export const theme = createTheme({
     ].join(", "),
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        html: { scrollbarGutter: "stable both-edges" },
+      },
+    },
     MuiAppBar: {
       defaultProps: { elevation: 1, color: "default" },
     },
