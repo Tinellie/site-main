@@ -177,6 +177,9 @@ export function VditorEditor({
     const wrapperElement = wrapper;
 
     function updateHoveredImage(target: EventTarget | null) {
+      if (target instanceof Element && target.closest(".ve-image-edit-button")) {
+        return;
+      }
       const image = target instanceof Element ? target.closest("img") : null;
       if (!(image instanceof HTMLImageElement)) {
         if (!panelOpen) setHoveredImage(null);
@@ -267,6 +270,8 @@ export function VditorEditor({
       <div className="me-mount" ref={mountRef} />
       {onRenameImage && hoveredImage && (
         <IconButton
+          className="ve-image-edit-button"
+          aria-label="编辑图片路径"
           size="small"
           color="primary"
           onClick={openRenamePanel}
