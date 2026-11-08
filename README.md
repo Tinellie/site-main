@@ -2,7 +2,7 @@
 
 基于 TypeScript、React、Next.js App Router、MUI、MySQL、Drizzle ORM、Vditor 和 gray-matter。
 
-当前页面仅包含居中标题导航和空白正文。没有示例文章、登录页、管理后台或公开写入接口。
+当前包含 Home、Connect、Works、Blog、Gallery 五个页面，均只有标题和空白正文。没有示例文章、登录页、管理后台或公开写入接口。
 
 ## 本地开发
 
@@ -24,8 +24,9 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 | [src/config/site.ts](src/config/site.ts) | 博客标题、描述 |
 | [src/theme/theme.ts](src/theme/theme.ts) | 颜色、间距、字体、组件默认值及全局基线 |
 | [src/theme/app-theme-provider.tsx](src/theme/app-theme-provider.tsx) | ThemeProvider 与 CssBaseline |
-| [src/components/layout/site-shell.tsx](src/components/layout/site-shell.tsx) | 导航与正文容器 |
-| [src/components/navigation/site-nav.tsx](src/components/navigation/site-nav.tsx) | 顶部导航，标题通过三列网格保持水平居中 |
+| [src/components/layout/site-shell.tsx](src/components/layout/site-shell.tsx) | 导航数据常数与全站外壳 |
+| [src/components/layout/page-template.tsx](src/components/layout/page-template.tsx) | main 页面模板、标题、内容容器 |
+| [src/components/navigation/site-nav.tsx](src/components/navigation/site-nav.tsx) | 数据驱动的双侧导航，通过等宽网格列保持标题居中 |
 | [src/features/home/components/home-page.tsx](src/features/home/components/home-page.tsx) | 空白首页内容，后续扩展文章列表 |
 | [src/features/editor/components/markdown-editor.tsx](src/features/editor/components/markdown-editor.tsx) | 客户端按需加载的编辑器入口，首页不加载编辑器 |
 | [src/features/editor/components/vditor-editor.tsx](src/features/editor/components/vditor-editor.tsx) | Vditor 初始化与生命周期 |
@@ -35,7 +36,20 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 | [src/db/schema/posts.ts](src/db/schema/posts.ts) | 文章表示例定义与推断类型 |
 | [drizzle.config.ts](drizzle.config.ts) | MySQL 迁移配置 |
 
-## 样式约定
+## 导航与页面模板
+
+`SiteNav` 的 `items` 接收 `{ label: string; href: string }` 数组，前半部分位于标题左侧，其余位于右侧。数据定义在 `SiteShell` 的 `navigationItems` 中。Connect 表示联系方式与社交个人主页。窄屏下同侧按钮换行，标题保持居中；标题暂时使用衬线字体方便区分，并链接到首页。
+
+`PageTemplate` 输出唯一的 `main`，可传入：
+
+- `title`：顶部居中的 h1，空字符串或未提供时不渲染。
+- `hideTitle`：默认 false；通过 MUI `visuallyHidden` 保留 DOM 中的 h1，但不占正常布局空间。它不负责鉴权或后台数据。
+- `children`：页面内容。
+- `removeMargin`：默认 false；设为 true 时去掉内容容器四周外边距，使内容可使用全部可用宽度。不会自动隐藏导航或让内容高度撑满视口。
+
+页面共用的单例节点使用 ID，导航按钮和可重复挂载的编辑器使用 className。Provider、路由和页面组件直接复用子组件的 DOM，不为添加标识额外创建包装元素。
+
+## 基础样式
 
 优先在 theme 中配置可复用的颜色、字体、间距和组件默认行为；局部布局使用 `sx`。没有额外的应用样式表，也没有 Tailwind。
 

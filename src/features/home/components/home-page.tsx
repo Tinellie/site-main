@@ -1,7 +1,5 @@
-"use client";
-
-import Box from "@mui/material/Box";
+import { PageTemplate } from "@/components/layout/page-template";
 
 export function HomePage() {
-  return <Box component="section" aria-label="文章列表" />;
+  return <PageTemplate title="Home" />;
 }

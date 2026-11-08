@@ -30,6 +30,7 @@ export function VditorEditor({
     let ready = false;
     // Give each mount its own node, including React Strict Mode remounts.
     const element = document.createElement("div");
+    element.className = "vditor-editor-instance";
     containerRef.current.appendChild(element);
     const editor = new Vditor(element, {
       value: initialValueRef.current,
@@ -74,17 +75,8 @@ export function VditorEditor({
   }, [darkMode, uploadUrl]);
 
   return (
-    <Box
-      sx={{
-        border: 1,
-        borderColor: "divider",
-        borderRadius: 1,
-        overflow: "hidden",
-        bgcolor: "background.paper",
-        "& .vditor": { border: 0, fontFamily: "inherit" },
-      }}
-    >
-      <div ref={containerRef} />
+    <Box className="markdown-editor">
+      <div className="markdown-editor-mount" ref={containerRef} />
     </Box>
   );
 }

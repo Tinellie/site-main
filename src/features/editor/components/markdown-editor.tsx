@@ -8,7 +8,7 @@ const VditorEditor = dynamic(
   () => import("./vditor-editor").then((module) => module.VditorEditor),
   {
     ssr: false,
-    loading: () => <Skeleton variant="rounded" height={480} />,
+    loading: () => <Skeleton className="markdown-editor-loading" variant="rounded" height={480} />,
   },
 );
 

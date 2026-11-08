@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="zh-CN">
-      <body>
+    <html id="site-document" lang="zh-CN">
+      <body id="site-body">
         <AppRouterCacheProvider>
           <AppThemeProvider>
             <SiteShell>{children}</SiteShell>

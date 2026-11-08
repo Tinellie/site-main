@@ -2,21 +2,24 @@
 
 import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
-import Container from "@mui/material/Container";
-import { SiteNav } from "@/components/navigation/site-nav";
+import Stack from "@mui/material/Stack";
+import { SiteNav, type NavItem } from "@/components/navigation/site-nav";
+
+const navigationItems = [
+  { label: "Home", href: "/" },
+  { label: "Connect", href: "/connect" },
+  { label: "Works", href: "/works" },
+  { label: "Blog", href: "/blog" },
+  { label: "Gallery", href: "/gallery" },
+] as const satisfies readonly NavItem[];
 
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
-    <Box sx={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
-      <SiteNav />
-      <Container
-        component="main"
-        id="main-content"
-        aria-label="博客内容"
-        sx={{ flex: 1, py: { xs: 3, md: 5 } }}
-      >
+    <Stack id="site-shell" sx={{ minHeight: "100dvh" }}>
+      <SiteNav items={navigationItems} />
+      <Box id="site-page" sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {children}
-      </Container>
-    </Box>
+      </Box>
+    </Stack>
   );
 }
