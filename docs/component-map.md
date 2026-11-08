@@ -92,6 +92,8 @@ Articles 分支：
 
 关键 className：根 `post-card`；内部及修饰符 `poc-compact`、`poc-action`、`poc-image`、`poc-content`、`poc-title`、`poc-description`、`poc-date`、`pfp-tag-chip`。
 
+Recommended 中 `compact=true` 的 PostCard 固定高度为 88px（含边框）；封面区域宽 88px，填满内容高度并通过 `object-fit: cover` 居中裁切，图片比例不影响卡片高度。无封面时保持同样高度。
+
 详情：第 1 层 `PostDetailPage`（让测试卡片有实际可访问的详情页），第 2 层 `PageTemplate`。目前仅显示封面、日期和摘要，不包含真实正文或数据库读取。未知 ID 返回 404。关键 ID：根 `post-detail`；内部 `pd-image`、`pd-date`、`pd-description`、`pd-debug-note`。
 
 ## DOM 标识缩写约定
@@ -102,10 +104,10 @@ Articles 分支：
 
 ## 图片索引
 
-所有八张临时图片已移入 public/images；proj-icon.png 在 icons，其他在 assets。原空临时文件夹已移除。
+所有八张临时图片已迁移到 public/assets；`proj-icon.png` 仍在 `public/images/icons`。
 
-- `proj.png` → `/images/assets/proj.png`
-- `@images/assets/proj.png` → `/images/assets/proj.png`
+- `proj.png` → `/assets/proj.png`
+- `@images/assets/proj.png` → `/assets/proj.png`
 - `@images/icons/proj-icon.png` → `/images/icons/proj-icon.png`
 - 社交卡片 `image="proj-icon.png"` → `/images/icons/proj-icon.png`
 

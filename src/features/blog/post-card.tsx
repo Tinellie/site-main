@@ -6,48 +6,68 @@ import CardMedia from "@mui/material/CardMedia";
 import Typography from "@mui/material/Typography";
 
 import { CardLinkAction } from "@/components/cards/card-link-action";
-import { resolveImagePath } from "@/lib/images/resolve-image-path";
-import type { BlogPost } from "@/features/blog/types";
+import type { BlogPostSummary } from "@/features/blog/types";
 
 export function PostCard({
   post,
   compact = false,
 }: {
-  post: BlogPost;
+  post: BlogPostSummary;
   compact?: boolean;
 }) {
   return (
     <Card
       className={compact ? "post-card poc-compact" : "post-card"}
       variant="outlined"
+      sx={compact ? { height: 88 } : undefined}
     >
       <CardLinkAction
-        href={`/blog/${encodeURIComponent(post.id)}`}
+        href={`/blog/${post.id}`}
         className="poc-action"
         sx={
           compact
             ? {
                 display: "flex",
+                height: "100%",
                 alignItems: "stretch",
                 justifyContent: "flex-start",
               }
             : undefined
         }
       >
-        <CardMedia
-          className="poc-image"
-          component="img"
-          image={resolveImagePath(post.image)}
-          alt={post.title}
-          loading="lazy"
-          sx={
-            compact
-              ? { width: 88, flexShrink: 0, alignSelf: "stretch" }
-              : { height: 224 }
-          }
-        />
+        {post.coverImage && (
+          <CardMedia
+            className="poc-image"
+            component="img"
+            image={post.coverImage}
+            alt={post.title}
+            loading="lazy"
+            sx={
+              compact
+                ? {
+                    width: 88,
+                    height: "100%",
+                    flexShrink: 0,
+                    objectFit: "cover",
+                    objectPosition: "center",
+                  }
+                : { height: 224 }
+            }
+          />
+        )}
 
-        <CardContent className="poc-content" sx={{ minWidth: 0, flex: 1 }}>
+        <CardContent
+          className="poc-content"
+          sx={{
+            minWidth: 0,
+            flex: 1,
+            ...(compact && {
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }),
+          }}
+        >
           <Typography
             className="poc-title"
             component={compact ? "h3" : "h2"}
@@ -63,9 +83,9 @@ export function PostCard({
             variant="body2"
             color="text.secondary"
             noWrap={compact}
-            title={post.description}
+            title={post.summary}
           >
-            {post.description}
+            {post.summary}
           </Typography>
           {!compact && (
             <Typography

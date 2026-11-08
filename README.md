@@ -2,7 +2,7 @@
 
 基于 TypeScript、React、Next.js App Router、MUI、MySQL、Drizzle ORM、Vditor 和 gray-matter。
 
-当前包含 Home、Connect、Works、Blog、Gallery 五个页面；Connect、Works、Blog 已加入卡片与筛选测试数据，Home 和 Gallery 仍保留空白正文。没有登录页、管理后台或公开写入接口。
+当前包含 Home、Connect、Works、Blog、Gallery 五个页面；Connect、Works 为测试数据，Blog 已接入本地 Markdown 存储与编辑流程。Home 和 Gallery 仍保留空白正文。没有登录页或完整管理后台。
 
 组件调用层级、属性、测试常数、图片索引与关键 DOM 标识见 [docs/component-map.md](docs/component-map.md)。
 
@@ -73,13 +73,17 @@ Vditor 组件内部引入其官方必需样式，这不属于应用布局样式�
 
 在未来的客户端管理页面中导入 `MarkdownEditor`，传入 `initialValue` 和 `onChange`。切换文章时使用文章 ID 作为 React `key`。
 
-默认支持快捷键、工具栏和即时渲染；未提供 `uploadUrl` 时不启用上传。若提供上传地址，该接口需自行实现登录权限校验、文件大小与内容校验，以及 Vditor 官方上传返回格式。当前没有上传服务，也不会假装已经上传成功。
+默认支持快捷键、工具栏和即时渲染；`/blog/[id]/edit` 已接入 Vditor 上传与图片重命名。编辑器上传接口为 `/api/blog/assets/upload`，图片写入 `public/assets/`，并支持在编辑器内 hover 图片后打开重命名面板。封面图输入使用相对 `assets` 的路径（不显示 `/assets/` 前缀），保存时由后端自动补齐；封面图与标签都可留空。
 
 编辑器默认会从 Vditor 版本化 CDN 加载语言包、Markdown 引擎和部分增强资源。生产环境可以按官方文档改为自托管，并同步设置 CDN、主题和图片资源路径。
 
 `gray-matter`（不是 `greymatter`）只解析 front matter，不负责渲染 Markdown、HTML 安全处理或自动持久化。当前解析工具仅面向可信作者内容。
 
-后续文章展示、草稿保存、认证、上传和缓存失效均需另行实现。不要在未加入服务端鉴权之前公开任何写入接口。
+文章以 `content/blog/[id].md` 保存，历史版本会在编辑时移动到 `content/blog/history/[id]/`。front matter 包含 `id`、`title`、`coverImage`、`publishedAt`、`updatedAt`、`tags`、`summary`。
+
+封面图栏位填写 `$$` 时，保存会自动采用正文第一张 Markdown 图片（支持内联和引用式图片，忽略代码与注释中的示例）；没有图片则封面留空。元数据保存实际图片地址，而非 `$$`。也支持 HTTP(S) 图片地址。
+
+正文图片使用相对于 `public/assets/` 的路径，例如 `![图片](covers/photo.png)` 会访问 `/assets/covers/photo.png`。Vditor 编辑与文章预览均使用 `/assets/` 作为相对地址基址；上传和图片重命名回写的 Markdown 不包含此前缀。绝对路径与外部图片 URL 保持原样。
 
 ## 部署
 

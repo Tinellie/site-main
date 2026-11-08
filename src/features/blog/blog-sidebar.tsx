@@ -4,12 +4,12 @@ import Stack from "@mui/material/Stack";
 
 import { PostFilterPanel } from "@/features/blog/post-filter-panel";
 import { RecommendedPostList } from "@/features/blog/recommended-post-list";
-import type { BlogPost, PostFilters } from "@/features/blog/types";
+import type { BlogPostSummary, PostFilters } from "@/features/blog/types";
 
 export interface BlogSidebarProps {
   filters: PostFilters;
   tags: readonly string[];
-  recommendations: readonly BlogPost[];
+  recommendations: readonly BlogPostSummary[];
   onFiltersChange: (filters: PostFilters) => void;
 }
 

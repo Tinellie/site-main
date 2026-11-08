@@ -1,10 +1,15 @@
-export interface BlogPost {
-  id: string;
-  image: string;
+export interface BlogPostSummary {
+  id: number;
+  coverImage: string;
   title: string;
-  description: string;
+  summary: string;
   publishedAt: string;
+  updatedAt: string;
   tags: readonly string[];
+}
+
+export interface BlogPost extends BlogPostSummary {
+  content: string;
 }
 
 export interface PostFilters {
