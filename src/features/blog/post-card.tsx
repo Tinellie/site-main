@@ -15,7 +15,6 @@ export function PostCard({
   return (
     <Card
       className={compact ? "post-card poc-compact" : "post-card"}
-      variant="outlined"
       sx={compact ? { height: 88 } : undefined}
     >
       <CardLinkAction
@@ -56,6 +55,7 @@ export function PostCard({
         <CardContent
           className="poc-content"
           sx={{
+            width: "100%",
             minWidth: 0,
             flex: 1,
             ...(compact && {
@@ -81,6 +81,13 @@ export function PostCard({
             color="text.secondary"
             noWrap={compact}
             title={post.summary}
+            sx={compact ? undefined : {
+              display: "-webkit-box",
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 3,
+              overflow: "hidden",
+              overflowWrap: "anywhere",
+            }}
           >
             {post.summary}
           </Typography>

@@ -13,7 +13,7 @@ export function ProjectCard({
   href,
 }: WorkCardProps) {
   return (
-    <Card className="project-card" variant="outlined" sx={{ height: 320 }}>
+    <Card className="project-card" sx={{ height: 320 }}>
       <CardLinkAction
         href={href}
         className="prc-action"
@@ -33,7 +33,10 @@ export function ProjectCard({
           sx={{ height: 176, flexShrink: 0 }}
         />
 
-        <CardContent className="prc-content" sx={{ minWidth: 0 }}>
+        <CardContent
+          className="prc-content"
+          sx={{ width: "100%", minWidth: 0, minHeight: 0, overflow: "hidden" }}
+        >
           <Typography
             className="prc-title"
             component="h3"
@@ -54,6 +57,7 @@ export function ProjectCard({
               WebkitBoxOrient: "vertical",
               WebkitLineClamp: 3,
               overflow: "hidden",
+              overflowWrap: "anywhere",
             }}
           >
             {description}

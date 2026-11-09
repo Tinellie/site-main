@@ -15,8 +15,7 @@ export function ArticleCard({
   return (
     <Card
       className="article-card"
-      variant="outlined"
-      sx={{ position: "relative" }}
+      sx={{ position: "relative", height: 88, flexShrink: 0 }}
     >
       <CardMedia
         className="ac-background"
@@ -35,8 +34,12 @@ export function ArticleCard({
         }}
       />
 
-      <CardLinkAction href={href} className="ac-action">
-        <CardContent className="ac-content">
+      <CardLinkAction
+        href={href}
+        className="ac-action"
+        sx={{ height: "100%", display: "flex", alignItems: "center" }}
+      >
+        <CardContent className="ac-content" sx={{ width: "100%", minWidth: 0 }}>
           <Typography
             className="ac-title"
             component="h3"

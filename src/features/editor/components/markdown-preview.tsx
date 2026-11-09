@@ -16,7 +16,7 @@ export function MarkdownPreview({ markdown }: { markdown: string }) {
     if (!node) return;
     node.innerHTML = "";
     Vditor.preview(node, markdown, {
-      mode: "light",
+      mode: theme.palette.mode,
       theme: {
         current: theme.palette.mode === "dark" ? "dark" : "light",
       },

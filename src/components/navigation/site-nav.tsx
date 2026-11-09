@@ -34,7 +34,12 @@ export function SiteNav({ items }: SiteNavProps) {
         size="small"
         color={pathname === href ? "primary" : "inherit"}
         aria-current={pathname === href ? "page" : undefined}
-        sx={{ minWidth: 0 }}
+        sx={{
+          minWidth: 0,
+          px: { xs: 1, sm: 1.5 },
+          letterSpacing: "0.08em",
+          borderRadius: 0,
+        }}
       >
         {label}
       </Button>
@@ -42,7 +47,12 @@ export function SiteNav({ items }: SiteNavProps) {
   }
 
   return (
-    <AppBar id="site-header" component="header" position="static">
+    <AppBar
+      id="site-header"
+      component="header"
+      position="static"
+      sx={{ position: "relative", flexShrink: 0 }}
+    >
       <Container id="sn-container">
         <Toolbar
           id="sn-nav"
@@ -52,7 +62,7 @@ export function SiteNav({ items }: SiteNavProps) {
           sx={{
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
-            gap: 1,
+            alignItems: "stretch",
           }}
         >
           <Stack
@@ -68,13 +78,21 @@ export function SiteNav({ items }: SiteNavProps) {
             id="sn-title"
             component="div"
             variant="h6"
-            sx={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+            sx={{
+              display: "flex",
+              fontFamily: 'Georgia, "Times New Roman", serif',
+            }}
           >
             <Link
               id="sn-home-link"
               component={NextLink}
               href="/"
               aria-label={`${siteConfig.title}首页`}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                px: { xs: 1, sm: 1.5 },
+              }}
             >
               {siteConfig.title}
             </Link>

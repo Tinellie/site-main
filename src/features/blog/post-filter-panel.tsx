@@ -26,7 +26,7 @@ export function PostFilterPanel({
   }
 
   return (
-    <Paper id="post-filter-panel" variant="outlined" sx={{ p: 2 }}>
+    <Paper id="post-filter-panel" sx={{ p: 2 }}>
       <Stack spacing={2}>
         <Typography id="pfp-title" component="h2" variant="h6">
           Filters
