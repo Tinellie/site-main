@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import Grid from "@mui/material/Grid";
+import { Grid } from "@mui/material";
 
 import { PostList } from "@/features/blog/post-list";
 import { BlogSidebar } from "@/features/blog/blog-sidebar";

@@ -1,9 +1,6 @@
 "use client";
 
-import CardMedia from "@mui/material/CardMedia";
-import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+import { CardMedia, Chip, Stack, Typography } from "@mui/material";
 
 import { PageTemplate } from "@/components/layout/page-template";
 import { EditPostFab } from "@/features/blog/edit-post-fab";

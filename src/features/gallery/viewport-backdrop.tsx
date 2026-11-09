@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from "react";
-import Backdrop, { type BackdropProps } from "@mui/material/Backdrop";
+import { Backdrop, type BackdropProps } from "@mui/material";
 
 export const ViewportBackdrop = forwardRef<HTMLDivElement, BackdropProps>(
   function ViewportBackdrop(props, forwardedRef) {

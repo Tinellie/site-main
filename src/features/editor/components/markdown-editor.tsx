@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-import Skeleton from "@mui/material/Skeleton";
+import { Skeleton } from "@mui/material";
 
 import type { MarkdownEditorProps } from "@/features/editor/types";
 

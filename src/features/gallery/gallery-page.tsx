@@ -4,31 +4,26 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import NextLink from "next/link";
 
-import FolderIcon from "@mui/icons-material/Folder";
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import ImageIcon from "@mui/icons-material/Image";
-import MovieIcon from "@mui/icons-material/Movie";
-import AudioFileIcon from "@mui/icons-material/AudioFile";
-import DescriptionIcon from "@mui/icons-material/Description";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import GridViewIcon from "@mui/icons-material/GridView";
-import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
-import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardActionArea from "@mui/material/CardActionArea";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import Link from "@mui/material/Link";
-import MenuItem from "@mui/material/MenuItem";
-import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import Typography from "@mui/material/Typography";
+import {
+  Folder as FolderIcon, InsertDriveFile as InsertDriveFileIcon,
+  Image as ImageIcon, Movie as MovieIcon, AudioFile as AudioFileIcon,
+  Description as DescriptionIcon,
+  ViewList as ViewListIcon, GridView as GridViewIcon,
+} from "@mui/icons-material";
+import {
+  Alert,
+  Box,
+  Breadcrumbs,
+  Button,
+  Card, CardActionArea,
+  Dialog, DialogActions, DialogContent, DialogTitle,
+  Link,
+  MenuItem,
+  Stack,
+  TextField,
+  ToggleButton, ToggleButtonGroup,
+  Typography,
+} from "@mui/material";
 
 import { PageTemplate } from "@/components/layout/page-template";
 import type { AssetEntry, AssetKind } from "@/features/gallery/types";

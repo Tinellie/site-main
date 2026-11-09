@@ -2,8 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-import Box from "@mui/material/Box";
-import { useTheme } from "@mui/material/styles";
+import { Box, useTheme } from "@mui/material";
 
 import Vditor from "vditor";
 import "vditor/dist/index.css";

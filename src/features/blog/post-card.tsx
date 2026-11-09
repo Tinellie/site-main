@@ -1,9 +1,6 @@
 "use client";
 
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardMedia from "@mui/material/CardMedia";
-import Typography from "@mui/material/Typography";
+import { Card, CardContent, CardMedia, Typography } from "@mui/material";
 
 import { CardLinkAction } from "@/components/cards/card-link-action";
 import type { BlogPostSummary } from "@/features/blog/types";

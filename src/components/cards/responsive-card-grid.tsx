@@ -2,7 +2,7 @@
 
 import { Children, type ReactNode } from "react";
 
-import Grid, { type GridProps } from "@mui/material/Grid";
+import { Grid, type GridProps } from "@mui/material";
 
 export function ResponsiveCardGrid({
   children,

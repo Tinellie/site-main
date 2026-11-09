@@ -2,13 +2,10 @@
 
 import NextLink from "next/link";
 
-import AppBar from "@mui/material/AppBar";
-import Button from "@mui/material/Button";
-import Container from "@mui/material/Container";
-import Link from "@mui/material/Link";
-import Stack from "@mui/material/Stack";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
+import {
+  AppBar, Button, Container,
+  Link, Stack, Toolbar, Typography,
+} from "@mui/material";
 
 import { usePathname } from "next/navigation";
 

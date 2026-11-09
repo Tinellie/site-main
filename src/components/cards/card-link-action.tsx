@@ -2,8 +2,7 @@
 
 import NextLink from "next/link";
 
-import CardActionArea from "@mui/material/CardActionArea";
-import type { SxProps, Theme } from "@mui/material/styles";
+import { CardActionArea, type SxProps, type Theme } from "@mui/material";
 
 import type { ReactNode } from "react";
 

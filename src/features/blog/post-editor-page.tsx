@@ -3,10 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import Alert from "@mui/material/Alert";
-import Button from "@mui/material/Button";
-import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
+import { Alert, Button, Stack, TextField } from "@mui/material";
 
 import { PageTemplate } from "@/components/layout/page-template";
 import { MarkdownEditor } from "@/features/editor/components/markdown-editor";

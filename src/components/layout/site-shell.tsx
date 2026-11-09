@@ -2,8 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
+import { Box, Stack } from "@mui/material";
 
 import { SiteNav, type NavItem } from "@/components/navigation/site-nav";
 

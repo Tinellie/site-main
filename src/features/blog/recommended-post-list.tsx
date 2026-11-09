@@ -1,7 +1,6 @@
 "use client";
 
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+import { Stack, Typography } from "@mui/material";
 
 import { PostCard } from "@/features/blog/post-card";
 import type { BlogPostSummary } from "@/features/blog/types";

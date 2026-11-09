@@ -2,8 +2,8 @@
 
 import NextLink from "next/link";
 
-import EditIcon from "@mui/icons-material/Edit";
-import Fab from "@mui/material/Fab";
+import { Edit as EditIcon } from "@mui/icons-material";
+import { Fab } from "@mui/material";
 
 export function EditPostFab({ id }: { id: number }) {
   return (

@@ -1,7 +1,6 @@
 "use client";
 
-import Stack from "@mui/material/Stack";
-import Alert from "@mui/material/Alert";
+import { Stack, Alert } from "@mui/material";
 
 import { PostCard } from "@/features/blog/post-card";
 import type { BlogPostSummary } from "@/features/blog/types";

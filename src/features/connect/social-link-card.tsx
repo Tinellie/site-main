@@ -1,17 +1,15 @@
 "use client";
 
-import Avatar from "@mui/material/Avatar";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+import {
+  Avatar,
+  Card, CardContent,
+  Stack, Typography,
+} from "@mui/material";
 
-import Email from "@mui/icons-material/Email";
-import GitHub from "@mui/icons-material/GitHub";
-import Instagram from "@mui/icons-material/Instagram";
-import Language from "@mui/icons-material/Language";
-import LinkedIn from "@mui/icons-material/LinkedIn";
-import YouTube from "@mui/icons-material/YouTube";
+import {
+  Email, Language,
+  GitHub, Instagram, LinkedIn, YouTube,
+} from "@mui/icons-material";
 
 import { CardLinkAction } from "@/components/cards/card-link-action";
 import { resolveImagePath } from "@/lib/images/resolve-image-path";

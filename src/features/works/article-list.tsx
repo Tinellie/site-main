@@ -1,6 +1,6 @@
 "use client";
 
-import Stack from "@mui/material/Stack";
+import { Stack } from "@mui/material";
 
 import { ArticleCard } from "@/features/works/article-card";
 import type { WorkCardProps } from "@/features/works/types";

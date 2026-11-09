@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import AddIcon from "@mui/icons-material/Add";
-import Fab from "@mui/material/Fab";
+import { Add as AddIcon } from "@mui/icons-material";
+import { Fab } from "@mui/material";
 
 export function CreatePostFab() {
   const router = useRouter();

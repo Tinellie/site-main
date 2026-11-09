@@ -1,7 +1,7 @@
 import { PageTemplate } from "@/components/layout/page-template";
 import { PageSection } from "@/components/layout/page-section";
 
-import Stack from "@mui/material/Stack";
+import { Stack } from "@mui/material";
 
 import { ProjectGrid } from "@/features/works/project-grid";
 import { ArticleList } from "@/features/works/article-list";

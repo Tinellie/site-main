@@ -1,6 +1,6 @@
 "use client";
 
-import Stack from "@mui/material/Stack";
+import { Stack } from "@mui/material";
 
 import { PostFilterPanel } from "@/features/blog/post-filter-panel";
 import { RecommendedPostList } from "@/features/blog/recommended-post-list";
