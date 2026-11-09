@@ -29,7 +29,7 @@ export function BlogSidebar({
       sx={{
         position: "sticky",
         top: (theme) => theme.spacing(2),
-        maxHeight: (theme) => `calc(100dvh - ${theme.spacing(4)})`,
+        maxHeight: (theme) => `calc(100cqh - ${theme.spacing(4)})`,
         overflowY: "auto",
         overscrollBehavior: "contain",
       }}

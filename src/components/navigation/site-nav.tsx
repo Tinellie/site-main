@@ -42,7 +42,12 @@ export function SiteNav({ items }: SiteNavProps) {
   }
 
   return (
-    <AppBar id="site-header" component="header" position="static">
+    <AppBar
+      id="site-header"
+      component="header"
+      position="static"
+      sx={{ position: "relative", flexShrink: 0 }}
+    >
       <Container id="sn-container">
         <Toolbar
           id="sn-nav"

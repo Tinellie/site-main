@@ -27,7 +27,6 @@ import {
 
 import { PageTemplate } from "@/components/layout/page-template";
 import type { AssetEntry, AssetKind } from "@/features/gallery/types";
-import { ViewportBackdrop } from "@/features/gallery/viewport-backdrop";
 
 const icons = {
   folder: FolderIcon, image: ImageIcon, video: MovieIcon,
@@ -171,7 +170,7 @@ export function GalleryPage({
               display: "flex", height: "100%", minWidth: 0,
               flexDirection: view === "grid" ? "column" : "row",
             } as const;
-            return <Card key={entry.url} variant="outlined"
+            return <Card key={entry.url}
               sx={view === "grid" ? { aspectRatio: "1 / 1", minWidth: 0 } : { minWidth: 0 }}>
               {entry.kind === "folder" ? (
                 <CardActionArea component={NextLink} href={entry.url} prefetch={false} sx={sx}>{content}</CardActionArea>
@@ -182,8 +181,7 @@ export function GalleryPage({
           })}
         </Box>
       </Stack>
-      <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="md"
-        slots={{ backdrop: ViewportBackdrop }}>
+      <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="md">
         <DialogTitle sx={{ overflowWrap: "anywhere" }}>{selected?.name}</DialogTitle>
         <DialogContent>
           {selected?.kind === "image" && <Box component="img" src={selected.url} alt={selected.name}

@@ -37,31 +37,34 @@ export function SocialLinkCard({
   return (
     <Card
       className="social-link-card"
-      variant="outlined"
-      sx={{ minHeight: 180, height: "100%" }}
+      sx={{
+        borderRadius: 2,
+        m: 1,
+        height: 140,
+      }}
     >
       <CardLinkAction
         href={href}
         className="slc-action"
         sx={{
-          minHeight: "inherit",
+          p: 2,
           height: "100%",
           display: "flex",
           alignItems: "center",
         }}
       >
-        <CardContent className="slc-content" sx={{ p: 3, width: "100%" }}>
+        <CardContent className="slc-content" sx={{ p: 2, width: "100%" }}>
           <Stack
             className="slc-identity"
             direction="row"
-            spacing={3}
+            spacing={2}
             sx={{ alignItems: "center" }}
           >
             <Avatar
               className="slc-icon"
               src={image ? resolveImagePath(image, "icons") : undefined}
               alt={platform}
-              sx={{ width: 64, height: 64 }}
+              sx={{ width: 56, height: 56 }}
             >
               {image ? null : <Icon fontSize="large" />}
             </Avatar>

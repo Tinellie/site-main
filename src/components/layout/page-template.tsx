@@ -36,6 +36,7 @@ export function PageTemplate({
       maxWidth={removeMargin ? false : "lg"}
       sx={(theme) => ({
         flex: 1,
+        flexShrink: 0,
         // Auto margins center the container; maxWidth uses MUI's lg breakpoint.
         width: removeMargin
           ? "100%"

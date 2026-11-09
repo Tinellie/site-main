@@ -22,6 +22,8 @@
 
 `SocialLinkCard` 属性：`image?`（icons 内相对地址）、`iconName?`、`platform`、`socialId`、`href`。图片优先于图标；不提供图片与名称时使用 Language 图标。名称支持 Email、GitHub、Instagram、Language、LinkedIn、YouTube，通过静态导入避免打包完整图标库。
 
+Connect 卡片固定高度为 140px，四周保留 8px 外边距。内容内边距与图文间距为 16px，头像为 56px。
+
 测试常数 `debugSocialLinks` 位于 ConnectPage 下方，示例账号和地址不是网站主的真实资料。
 
 ## Works：最多 7 层
@@ -47,7 +49,7 @@ Articles 分支：
 
 两个卡片共享 `WorkCardProps`：`image`、`title`、`description`、`href`。
 
-项目卡片固定 320px 高，图片 176px 高；宽度根据矩阵响应式变化，内容为空也不坍塌。描述最多三行，超出省略，并通过原生 HTML title 展示全文。文章作品卡片为长条，背景图片 opacity 0.15，描述一行省略。
+项目卡片固定 320px 高，图片 176px 高；宽度根据矩阵响应式变化，不随内容变化。标题一行、描述最多三行，超出省略，并通过原生 HTML title 展示全文。文章作品卡片固定 88px 高，宽度随容器变化，背景图片 opacity 0.15，标题与描述均一行省略。
 
 关键 className：根 `page-section`、`responsive-card-grid`、`project-card`、`article-list`、`article-card`；内部使用 `ps-title`、`rcg-item`、`prc-action/image/content/title/description`、`ac-background/action/content/title/description`（斜杠表示多个后缀，实际 className 使用连字符）。
 
@@ -86,13 +88,15 @@ Articles 分支：
 
 筛选规则：搜索标题和描述，不区分大小写；日期为包含两端的范围；选中标签为 OR，不选标签则不限制。搜索、日期、标签三个维度之间使用 AND。推荐列表暂时固定读取测试数据前四篇，不跟随筛选。
 
-桌面使用主列表 8/12 或 9/12、侧栏 4/12 或 3/12 的 Grid。侧栏使用 sticky，滚动后距视口顶部 16px；高度不超过视口减 32px，内容过多时内部滚动。手机宽度下改为主列表在上、侧栏在下，避免过窄双列。
+桌面使用主列表 8/12 或 9/12、侧栏 4/12 或 3/12 的 Grid。侧栏使用 sticky，滚动后距正文滚动区顶部 16px；高度不超过正文滚动区减 32px，内容过多时内部滚动。手机宽度下改为主列表在上、侧栏在下，避免过窄双列。
 
 关键 ID：根 `blog-explorer`、`post-list`、`blog-sidebar`、`post-filter-panel`、`recommended-post-list`；内部 `be-post-column`、`be-sidebar-column`、`pl-empty`、`pfp-title`、`pfp-search`、`pfp-date-from`、`pfp-date-to`、`pfp-tags`、`pfp-tags-label`、`pfp-reset`、`rpl-title`。
 
 关键 className：根 `post-card`；内部及修饰符 `poc-compact`、`poc-action`、`poc-image`、`poc-content`、`poc-title`、`poc-description`、`poc-date`、`pfp-tag-chip`。
 
-Recommended 中 `compact=true` 的 PostCard 固定高度为 88px（含边框）；封面区域宽 88px，填满内容高度并通过 `object-fit: cover` 居中裁切，图片比例不影响卡片高度。无封面时保持同样高度。
+Recommended 中 `compact=true` 的 PostCard 固定高度为 88px；封面区域宽 88px，填满内容高度并通过 `object-fit: cover` 居中裁切，图片比例不影响卡片高度。无封面时保持同样高度。
+
+普通 PostCard 和详情页概述最多显示三行，超出省略；Recommended 概述保持单行省略。连续长文本在可用宽度内换行，完整概述保留在 title 提示中，文章正文不截断。
 
 详情：第 1 层 `PostDetailPage`（让测试卡片有实际可访问的详情页），第 2 层 `PageTemplate`。目前仅显示封面、日期和摘要，不包含真实正文或数据库读取。未知 ID 返回 404。关键 ID：根 `post-detail`；内部 `pd-image`、`pd-date`、`pd-description`、`pd-debug-note`。
 

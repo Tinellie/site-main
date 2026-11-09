@@ -42,7 +42,18 @@ export function PostDetailPage({ post }: { post: BlogPost }) {
           </Typography>
         )}
 
-        <Typography id="pd-description" color="text.secondary">
+        <Typography
+          id="pd-description"
+          color="text.secondary"
+          title={post.summary}
+          sx={{
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 3,
+            overflow: "hidden",
+            overflowWrap: "anywhere",
+          }}
+        >
           {post.summary}
         </Typography>
 
