@@ -105,7 +105,7 @@ export function GalleryPage({
   }, ...visible] : visible;
 
   return (
-    <PageTemplate title="Gallery">
+    <PageTemplate title="Gallery" hideTitle={true}>
       <Stack spacing={2}>
         <Breadcrumbs aria-label="目录导航">
           <Link component={NextLink} href="/gallery">assets</Link>
