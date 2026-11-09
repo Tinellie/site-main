@@ -42,6 +42,8 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 
 `SiteNav` 的 `items` 接收 `{ label: string; href: string }` 数组，前半部分位于标题左侧，其余位于右侧。数据定义在 `SiteShell` 的 `navigationItems` 中。Connect 表示联系方式与社交个人主页。窄屏下同侧按钮换行，标题保持居中；标题暂时使用衬线字体方便区分，并链接到首页。
 
+导航按钮字间距为 `0.08em`；按钮和标题链接均使用左右 12px 内边距，窄屏缩小为 8px，不设置项目间 gap。按钮和标题链接的点击区域填满导航高度，导航按钮无圆角。
+
 `PageTemplate` 输出唯一的 `main`，可传入：
 
 - `title`：顶部居中的 h1，空字符串或未提供时不渲染。

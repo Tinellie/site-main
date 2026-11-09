@@ -1,4 +1,4 @@
 export const siteConfig = {
-  title: "个人博客",
-  description: "记录生活、想法与技术的个人空间。",
+  title: "涼月的锚泊地",
+  description: "凉月Nuey的个人网站、博客",
 } as const;
