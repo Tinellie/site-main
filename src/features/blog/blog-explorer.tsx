@@ -6,9 +6,9 @@ import Grid from "@mui/material/Grid";
 
 import { PostList } from "@/features/blog/post-list";
 import { BlogSidebar } from "@/features/blog/blog-sidebar";
-import type { BlogPost, PostFilters } from "@/features/blog/types";
+import type { BlogPostSummary, PostFilters } from "@/features/blog/types";
 
-export function BlogExplorer({ posts }: { posts: readonly BlogPost[] }) {
+export function BlogExplorer({ posts }: { posts: readonly BlogPostSummary[] }) {
   const [filters, setFilters] = useState<PostFilters>({
     search: "",
     dateFrom: "",
@@ -19,7 +19,7 @@ export function BlogExplorer({ posts }: { posts: readonly BlogPost[] }) {
   const search = filters.search.trim().toLocaleLowerCase();
   const filteredPosts = posts.filter((post) => (
     (!search ||
-      `${post.title} ${post.description}`.toLocaleLowerCase().includes(search)) &&
+      `${post.title} ${post.summary}`.toLocaleLowerCase().includes(search)) &&
     (!filters.dateFrom || post.publishedAt >= filters.dateFrom) &&
     (!filters.dateTo || post.publishedAt <= filters.dateTo) &&
     (!filters.tags.length || post.tags.some((tag) => filters.tags.includes(tag)))

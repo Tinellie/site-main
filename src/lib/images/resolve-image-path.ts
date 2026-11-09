@@ -27,6 +27,17 @@ export function resolveImagePath(
     throw new Error("图片路径必须是储存目录内的相对路径，不允许访问上级目录。");
   }
 
-  const base = fromRoot ? "/images" : `/images/${directory}`;
+  if (fromRoot) {
+    const [firstSegment, ...restSegments] = segments;
+    if (firstSegment === "assets") {
+      if (restSegments.length < 1) {
+        throw new Error("assets 根路径必须指向具体文件。");
+      }
+      return `/assets/${restSegments.map(encodeURIComponent).join("/")}`;
+    }
+    return `/images/${segments.map(encodeURIComponent).join("/")}`;
+  }
+
+  const base = directory === "assets" ? "/assets" : "/images/icons";
   return `${base}/${segments.map(encodeURIComponent).join("/")}`;
 }

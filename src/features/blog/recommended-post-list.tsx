@@ -4,9 +4,9 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { PostCard } from "@/features/blog/post-card";
-import type { BlogPost } from "@/features/blog/types";
+import type { BlogPostSummary } from "@/features/blog/types";
 
-export function RecommendedPostList({ posts }: { posts: readonly BlogPost[] }) {
+export function RecommendedPostList({ posts }: { posts: readonly BlogPostSummary[] }) {
   return (
     <Stack
       id="recommended-post-list"

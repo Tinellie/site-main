@@ -4,9 +4,9 @@ import Stack from "@mui/material/Stack";
 import Alert from "@mui/material/Alert";
 
 import { PostCard } from "@/features/blog/post-card";
-import type { BlogPost } from "@/features/blog/types";
+import type { BlogPostSummary } from "@/features/blog/types";
 
-export function PostList({ posts }: { posts: readonly BlogPost[] }) {
+export function PostList({ posts }: { posts: readonly BlogPostSummary[] }) {
   return (
     <Stack id="post-list" spacing={2}>
       {posts.length ? (
