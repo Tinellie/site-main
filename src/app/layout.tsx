@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 
 import { SiteShell } from "@/components/layout/site-shell";
@@ -21,7 +22,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AppRouterCacheProvider>
           <AppThemeProvider>
             <AuthProvider>
-              <SiteShell>{children}</SiteShell>
+              <ViewTransition name="site-page" default="none" update="page-crossfade">
+                <SiteShell>{children}</SiteShell>
+              </ViewTransition>
             </AuthProvider>
           </AppThemeProvider>
         </AppRouterCacheProvider>

@@ -4,6 +4,7 @@
 
 ## 共用组件
 
+- `SiteShell`：全站外壳与正文滚动恢复，使用 React `ViewTransition` 统一实现 350ms 全屏交叉淡化，包含导航、正文、背景和 footer；不新增包装 DOM，尊重减少动态效果设置。
 - `AuthProvider`：维护客户端登录状态，在加载、窗口聚焦和每分钟查询服务端会话；写入权限仍由服务端独立判断。
 - `AuthControls`：footer 的登录、账号、退出和认证错误提示。
 - `PageScrollbar`：全站主滚动区的悬浮滚动条，支持拖动、轨道点击和键盘操作；DOM ID 为 `ss-scrollbar`，滑块 className 为 `psb-thumb`。不占正文宽度，弹窗打开时随正文滚动一起禁用。

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 import { alpha, Box } from "@mui/material";
@@ -27,11 +27,29 @@ export function SiteShell({ children }: { children: ReactNode }) {
     function handlePopState() {
       restoringHistory.current = window.location.pathname !== pathname;
     }
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    // Navigation API traversals can render before popstate is dispatched.
+    function handleNavigate(event: Event) {
+      if (
+        "navigationType" in event && event.navigationType === "traverse" &&
+        "destination" in event && typeof event.destination === "object" &&
+        event.destination !== null && "url" in event.destination &&
+        typeof event.destination.url === "string"
+      ) {
+        restoringHistory.current =
+          new URL(event.destination.url).pathname !== pathname;
+      }
+    }
+    const navigation = "navigation" in window &&
+      window.navigation instanceof EventTarget ? window.navigation : null;
+    navigation?.addEventListener("navigate", handleNavigate, true);
+    window.addEventListener("popstate", handlePopState, true);
+    return () => {
+      navigation?.removeEventListener("navigate", handleNavigate, true);
+      window.removeEventListener("popstate", handlePopState, true);
+    };
   }, [pathname]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const page = pageRef.current;
     if (!page) return;
 
@@ -40,16 +58,15 @@ export function SiteShell({ children }: { children: ReactNode }) {
       : 0;
     const restore = restoringHistory.current;
     restoringHistory.current = false;
-    const frame = requestAnimationFrame(() => {
-      if (restore || !window.location.hash) page.scrollTop = position;
-    });
+    if (restore || !window.location.hash) page.scrollTop = position;
 
     const rememberPosition = () => {
-      scrollPositions.current.set(pathname, page.scrollTop);
+      if (window.location.pathname === pathname) {
+        scrollPositions.current.set(pathname, page.scrollTop);
+      }
     };
     page.addEventListener("scroll", rememberPosition, { passive: true });
     return () => {
-      cancelAnimationFrame(frame);
       page.removeEventListener("scroll", rememberPosition);
     };
   }, [pathname]);
