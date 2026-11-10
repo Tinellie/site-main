@@ -2,7 +2,7 @@
 
 基于 TypeScript、React、Next.js App Router、MUI、MySQL、Drizzle ORM、Vditor 和 gray-matter。
 
-当前包含 Home、Connect、Works、Blog、Gallery 页面；Connect、Works 为测试数据，Blog 已接入本地 Markdown 存储与编辑流程。Home 保留空白正文。`/login` 支持本地管理员账号密码登录；游客只读，管理员可编辑文章、上传和重命名图片。
+当前包含 Home、Connect、Works、Blog、Gallery 页面；Home 为两屏背景示例，Connect、Works 为测试数据，Blog 已接入本地 Markdown 存储与编辑流程。`/login` 支持本地管理员账号密码登录；游客只读，管理员可编辑文章、上传和重命名图片。
 
 组件调用层级、属性、测试常数、图片索引与关键 DOM 标识见 [docs/component-map.md](docs/component-map.md)。
 
@@ -15,6 +15,7 @@
 - `npm run build`：生产构建。
 - `npm start`：启动生产构建。
 - `npm run test:auth`：运行认证基础单元测试。
+- `npm run test:blog`：运行 Blog 时间展示格式单元测试。
 
 Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.js 24。
 
@@ -30,7 +31,7 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 | [src/components/layout/site-shell.tsx](src/components/layout/site-shell.tsx) | 导航数据常数与全站外壳 |
 | [src/components/layout/page-template.tsx](src/components/layout/page-template.tsx) | main 页面模板、标题、内容容器 |
 | [src/components/navigation/site-nav.tsx](src/components/navigation/site-nav.tsx) | 数据驱动的双侧导航，通过等宽网格列保持标题居中 |
-| [src/features/home/components/home-page.tsx](src/features/home/components/home-page.tsx) | 空白首页内容，后续扩展文章列表 |
+| [src/features/home/components/home-page.tsx](src/features/home/components/home-page.tsx) | 两屏背景与正文示例 |
 | [src/features/editor/components/markdown-editor.tsx](src/features/editor/components/markdown-editor.tsx) | 客户端按需加载的编辑器入口，首页不加载编辑器 |
 | [src/features/editor/components/vditor-editor.tsx](src/features/editor/components/vditor-editor.tsx) | Vditor 初始化与生命周期 |
 | [src/features/editor/types.ts](src/features/editor/types.ts) | 编辑器属性类型 |
@@ -50,18 +51,75 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 - `title`：顶部居中的 h1，空字符串或未提供时不渲染。
 - `hideTitle`：默认 false；通过 MUI `visuallyHidden` 保留 DOM 中的 h1，但不占正常布局空间。它不负责鉴权或后台数据。
 - `children`：页面内容。
-- `removeMargin`：默认 false；设为 true 时去掉内容容器四周外边距，使内容可使用全部可用宽度。不会自动隐藏导航或让内容高度撑满视口。
-- `removeMargin`：默认 false；main 使用 MUI Container 居中，最大宽度为 lg（默认 1200px），通常左右留白各 48px。可用窗口宽度在 336–416px 时内容保持 320px，留白从 8px 增至 48px；小于 336px 时保持各 8px 留白，内容随窗口缩小以避免溢出。内容上下外边距为 24px。设为 true 时取消最大宽度、左右留白和内容上下外边距，使用完整可用宽度。不会自动隐藏导航或移除标题本身的顶部间距。
+- `removeMargin`：默认 false；main 使用 MUI Container 居中，默认最大宽度为 lg（1200px），通常左右留白各 48px。可用窗口宽度在 336–416px 时内容保持 320px，留白从 8px 增至 48px；小于 336px 时保持各 8px 留白，内容随窗口缩小以避免溢出。内容上下外边距为 24px。设为 true 时去掉这些留白，默认取消最大宽度；不会自动隐藏导航或移除标题本身的顶部间距。
+- `maxWidth`：按当前 `PageTemplate` 设置正文容器最大宽度，支持 MUI 断点 `"xs" | "sm" | "md" | "lg" | "xl"`、像素数字（如 `maxWidth={960}`）或 `false`（无最大宽度限制）。默认普通页面为 `"lg"`，`removeMargin` 或 `paginated` 页面为 `false`；显式设置优先于这些默认值。正文仍居中且随窄窗口收缩，原有留白独立保留。该参数不作用于独立的 `PageScreen`，分页页面显式设置它会同时限制分页背景的宽度。
+- `ignoreNav`：默认 false，正文从导航下方开始；true 时正文滚动区从窗口顶部开始，导航固定覆盖在正文上，不占正文高度。普通页面和分页页面均可使用。
+- `transparentNav`：默认 false；true 时导航背景不透明度为 60%，文字和按钮不受影响。与 `ignoreNav` 独立控制；需要正文背景透过导航显示时同时设置 `ignoreNav=true`。Home 已启用半透明导航与 `ignoreNav=true`，首屏背景为 `/images/backgrounds/bg1.JPG`。
+- `paginated`：默认 false；true 时启用下面的固定一屏分页，自动去掉模板外边距与最大宽度，页面 h1 保留但视觉隐藏，避免挤占首屏高度。
+
+### 按窗口高度分页
+
+在 `PageTemplate paginated` 内直接放置多个 `PageScreen`：
+
+```tsx
+import { PageScreen } from "@/components/layout/page-screen";
+import { PageTemplate } from "@/components/layout/page-template";
+
+<PageTemplate title="Home" paginated ignoreNav={false}>
+  <PageScreen
+    label="第一屏"
+    backgroundImage="/assets/proj.png"
+    overlayColor="rgba(0, 0, 0, 0.5)"
+  >
+    第一屏正文
+  </PageScreen>
+  <PageScreen label="第二屏" backgroundColor="#1c2938">
+    第二屏正文
+  </PageScreen>
+</PageTemplate>
+```
+
+- `ignoreNav=false`：第一屏高度为窗口减去实际导航高度，导航与第一屏合计正好一窗口；后续每屏为 `100dvh`。
+- `ignoreNav=true`：第一屏和后续每屏均为 `100dvh`，第一屏顶部在导航后方，不自动为正文添加避让。
+- `PageScreen` 固定高度，内容超出时在本屏内部滚动；滚到边界后继续滚动外层正文查看下一屏。不强制吸附或自动翻页。
+- 首屏使用正文尺寸容器的 `100cqh`，导航换行、窗口缩放、手机动态视口变化时自动调整，无需测量或硬编码导航高度。
+- `backgroundImage` 为图片 URL，默认居中 `cover` 铺满容器，保持比例、允许裁剪；`backgroundColor` 可独立使用或作为图片底色。`id` 支持锚点，`label` 提供无障碍名称，`sx` 可调整内边距等样式（默认 24px），不要覆盖分页高度。
+- `overlayColor` 为可选的 CSS 遮罩颜色，例如 `rgba(0, 0, 0, 0.5)`；设置后在背景图片上方叠加一层同色渐变，只影响背景，不改变正文透明度或阻挡交互。不设置时没有遮罩；`backgroundColor` 不设置时默认透明。Home 首屏使用 65% 黑色遮罩，中央大字读取 `siteConfig.title`，采用与导航标题相同的衬线字体和字重，第二屏不设置背景图片或颜色。
+- 背景填满正文可用宽度，全站主滚动区不再为滚动条预留两侧空间；footer 仍位于全部分页之后，不计入分页高度。
+
+### 固定全屏页面背景
+
+`PageBackground` 可在当前页面中使用一次，为整个窗口提供固定背景，不占正文空间，也不随正文滚动：
+
+```tsx
+import { PageBackground } from "@/components/layout/page-background";
+import { PageTemplate } from "@/components/layout/page-template";
+
+<PageTemplate title="文章">
+  <PageBackground
+    backgroundImage="/images/backgrounds/bg1.JPG"
+    backgroundColor="#18232e"
+    overlayColor="rgba(0, 0, 0, 0.5)"
+  />
+  正文内容
+</PageTemplate>
+```
+
+三个参数均可选，与 `PageScreen` 同名参数含义一致：图片居中 `cover` 铺满，`backgroundColor` 为底色，`overlayColor` 为背景上方的颜色遮罩，不改变正文透明度。背景覆盖导航后方和正文两侧，导航是否透出背景仍由 `transparentNav` 决定；不受 `maxWidth`、正文留白或 `ignoreNav` 影响。正文中的不透明卡片或分页背景仍会遮住它。
+
+通过 MUI `Portal` 将背景挂到 `SiteShell`，避开正文尺寸容器与裁剪边界；外壳使用隔离层叠上下文，保证背景在正文、导航、滚动条和弹窗下方，同时不落到 body 底色后面。背景不接收点击、不参与无障碍阅读，切换页面卸载后自动移除，并参与全屏路由交叉淡化。不使用该组件的页面保持不变。
 
 页面共用的单例节点使用 ID，导航按钮和可重复挂载的编辑器使用 className。Provider、路由和页面组件直接复用子组件的 DOM，不为添加标识额外创建包装元素。
 
-全站外壳固定为视口高度，顶部导航自身全宽，不随正文滚动；`ss-page` 为可聚焦的独立正文滚动区域，仅在这里使用 `scrollbar-gutter: stable both-edges` 保持正文对称。根页面不滚动，导航背景和阴影无需补齐。正文滚动区也提供尺寸查询容器，Blog 侧栏使用其高度限制内部滚动。打开 MUI 弹窗或弹出菜单时锁定正文滚动，Gallery 使用标准 Dialog 遮罩，不再修改根元素的预留空间或 padding。
+全站外壳固定为视口高度，使用 Grid 将导航与正文堆叠；`ignoreNav` 模式让正文跨越导航所在网格行。顶部导航自身全宽，不随正文滚动；`ss-page` 为可聚焦的独立正文滚动区域，隐藏原生滚动条且不预留 gutter，内容与背景可以使用完整宽度。根页面不滚动。正文滚动区也提供尺寸查询容器，Blog 侧栏使用其高度限制内部滚动。打开 MUI 弹窗或弹出菜单时锁定正文滚动并隐藏悬浮滚动条，Gallery 使用标准 Dialog 遮罩。
 
-切换路径时正文回到顶部，带锚点的链接保留 Next.js 的定位行为；浏览器前进、后退恢复当前会话中按路径记录的正文滚动位置。
+切换路径时正文回到顶部，带锚点的链接保留 Next.js 的定位行为；浏览器前进、后退恢复当前会话中按路径记录的正文滚动位置。滚动恢复在布局阶段完成，早于过渡新画面快照；只在当前 URL 与监听路径一致时保存位置，避免切页时的自动归零覆盖旧记录。
+
+根布局使用 React `ViewTransition` 包裹整个 `SiteShell`，站内路由切换时导航、正文和背景一起进行 350ms 的交叉淡化，不额外创建 DOM、不重挂载外壳或延迟跳转。动画时长在 theme 的 `::view-transition-*(site-page)` 中配置；启用系统“减少动态效果”时动画时长为零。不支持 View Transitions API 的浏览器正常即时切换；普通同步交互不会触发页面过渡。
 
 透明 footer 位于正文滚动区末尾，左下角提供 `/login` 登录入口，避开右下角的文章新建和编辑按钮；内容不足一屏时由 main 的弹性高度将其推至底部，超过一屏时排在内容之后，不固定覆盖正文。
 
-全站滚动条使用透明轨道、圆角滑块；Chromium/WebKit 隐藏两端按钮，滑块 hover 时加亮。Firefox 使用原生细滚动条与透明轨道，按钮形态由浏览器决定。滚动条仍占据预留空间，不采用覆盖内容的模拟滚动条。
+全站主滚动区使用 `PageScrollbar`：10px 宽的透明轨道悬浮在正文最右侧，圆角滑块 hover 或键盘聚焦时加亮，不占布局宽度。内容仍由原生滚动容器处理，支持滚轮、触摸、正文键盘滚动与历史位置恢复；悬浮条支持拖动、点击轨道、滚轮及方向键、PageUp/PageDown、Home/End，并提供 ARIA 滚动条语义。窗口、内容尺寸和路由变化会自动更新滑块，没有溢出时不显示。分页内部、侧栏和弹窗等局部滚动区仍使用原生透明轨道滚动条。
 
 ## 基础样式
 
@@ -128,13 +186,15 @@ Vditor 组件内部引入其官方必需样式，这不属于应用布局样式�
 
 文章以 `content/blog/[id].md` 保存，历史版本会在编辑时移动到 `content/blog/history/[id]/`。front matter 包含 `id`、`title`、`coverImage`、`publishedAt`、`updatedAt`、`tags`、`summary`。
 
+Blog 列表与详情页时间统一显示为 `YYYY-MM-DD HH:mm`（24 小时制，保持 UTC），不显示秒和毫秒；底层 ISO 时间和 HTML `time` 的 `dateTime` 属性不变。列表及推荐卡片摘要为单行，超出省略，完整摘要保留在 title 提示中；详情页不重复显示摘要。详情页文章标题位于左侧，标签排在标题下方，发布／更新时间在右侧上下排列，使用 MUI `caption` 与 `text.disabled` 低亮度颜色；窄屏可换行但时间仍右对齐，长标题自动换行。
+
 封面图栏位填写 `$$` 时，保存会自动采用正文第一张 Markdown 图片（支持内联和引用式图片，忽略代码与注释中的示例）；没有图片则封面留空。元数据保存实际图片地址，而非 `$$`。也支持 HTTP(S) 图片地址。
 
 正文图片使用相对于 `public/assets/` 的路径，例如 `![图片](covers/photo.png)` 会访问 `/assets/covers/photo.png`。Vditor 编辑与文章预览均使用 `/assets/` 作为相对地址基址；上传和图片重命名回写的 Markdown 不包含此前缀。绝对路径与外部图片 URL 保持原样。
 
 ## Gallery 文件浏览
 
-`/gallery` 只读展示 `public/assets` 当前目录的全部文件和子目录；`/gallery/a/b` 对应 `public/assets/a/b`。面包屑支持返回上级，搜索仅匹配当前目录名称。支持名称、修改时间、大小、类型排序（文件夹优先），以及列表与方形卡片视图。图片、视频、音频、文本可点击预览，其他格式可打开原文件；媒体播放能力以浏览器为准。无上传、移动、删除等操作，不跟随符号链接；缺失或非法目录返回 404。所有 assets 文件仍为公开资源。
+`/gallery` 只读展示 `public/assets` 当前目录的全部文件和子目录；`/gallery/a/b` 对应 `public/assets/a/b`。面包屑支持返回上级，搜索仅匹配当前目录名称。支持名称、修改时间、大小、类型排序（文件夹优先），以及列表与方形卡片视图。图片、视频、音频、文本可点击预览，其他格式显示不支持预览的提示；媒体播放能力以浏览器为准。预览仅保留半透明全屏遮罩，文件名置于屏幕顶部，内容层透明且无阴影；无关闭或打开原文件按钮，点击空白处或按 Esc 关闭，媒体控件和文本区域可正常操作。关闭时保留文件名及预览内容至退场动画结束，再清理选中文件，避免空标题背景残留闪烁。无上传、移动、删除等操作，不跟随符号链接；缺失或非法目录返回 404。所有 assets 文件仍为公开资源。
 
 非根目录的文件区始终置顶“..”（不显示其他文本），用于返回上级，不参与搜索、排序或文件计数，两种视图都可使用。图片缩略图使用 Next.js Image 按显示尺寸优化和懒加载，只有打开预览时才加载原图；首次生成缩略图有处理开销，后续请求复用缓存。目录链接关闭预取，避免浏览时提前读取未打开的目录。
 

@@ -1,3 +1,4 @@
+import { PageBackground } from "@/components/layout/page-background";
 import { PageTemplate } from "@/components/layout/page-template";
 import { SocialLinkGrid } from "@/features/connect/social-link-grid";
 import type { SocialLinkCardProps } from "@/features/connect/social-link-card";
@@ -5,6 +6,10 @@ import type { SocialLinkCardProps } from "@/features/connect/social-link-card";
 export function ConnectPage() {
   return (
     <PageTemplate title="Connect">
+      <PageBackground
+        backgroundImage="/images/backgrounds/bg2.JPG"
+        overlayColor="rgba(0, 0, 0, 0.6)"
+      />
       <SocialLinkGrid items={debugSocialLinks} />
     </PageTemplate>
   );

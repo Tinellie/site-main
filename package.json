@@ -13,6 +13,7 @@
     "db:studio": "drizzle-kit studio",
     "auth:admin": "node --experimental-strip-types scripts/create-admin.mjs",
     "test:auth": "node --experimental-strip-types --test tests/auth.test.mjs",
+    "test:blog": "node --experimental-strip-types --test tests/blog.test.mjs",
     "test:auth:integration": "node --experimental-strip-types --test tests/auth.integration.test.mjs"
   },
   "dependencies": {

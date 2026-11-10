@@ -3,6 +3,7 @@
 import { Card, CardContent, CardMedia, Typography } from "@mui/material";
 
 import { CardLinkAction } from "@/components/cards/card-link-action";
+import { formatPostTimestamp } from "@/features/blog/format-timestamp";
 import type { BlogPostSummary } from "@/features/blog/types";
 
 export function PostCard({
@@ -47,7 +48,7 @@ export function PostCard({
                     objectFit: "cover",
                     objectPosition: "center",
                   }
-                : { height: 224 }
+                : { aspectRatio: "3", objectFit: "cover" }
             }
           />
         )}
@@ -79,15 +80,8 @@ export function PostCard({
             className="poc-description"
             variant="body2"
             color="text.secondary"
-            noWrap={compact}
+            noWrap
             title={post.summary}
-            sx={compact ? undefined : {
-              display: "-webkit-box",
-              WebkitBoxOrient: "vertical",
-              WebkitLineClamp: 3,
-              overflow: "hidden",
-              overflowWrap: "anywhere",
-            }}
           >
             {post.summary}
           </Typography>
@@ -99,7 +93,7 @@ export function PostCard({
               variant="caption"
               color="text.secondary"
             >
-              {post.publishedAt}
+              {formatPostTimestamp(post.publishedAt)}
             </Typography>
           )}
         </CardContent>

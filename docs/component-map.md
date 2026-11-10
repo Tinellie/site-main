@@ -4,9 +4,14 @@
 
 ## 共用组件
 
+- `PageBackground`：固定全窗口背景，支持 `backgroundImage`、`backgroundColor`、`overlayColor`；通过 MUI Portal 挂在隔离层叠的 `SiteShell` 内，不随正文滚动、不受正文宽度限制、不拦截交互，随所属页面卸载。className 为 `page-background`；与 `PageScreen` 的滚动分页背景独立。
+
+- `SiteShell`：全站外壳与正文滚动恢复，使用 React `ViewTransition` 统一实现 350ms 全屏交叉淡化，包含导航、正文、背景和 footer；不新增包装 DOM，尊重减少动态效果设置。
 - `AuthProvider`：维护客户端登录状态，在加载、窗口聚焦和每分钟查询服务端会话；写入权限仍由服务端独立判断。
 - `AuthControls`：footer 的登录、账号、退出和认证错误提示。
-- `PageTemplate`：main 页面骨架，页面标题和 children 容器，沿用已有命名。
+- `PageScrollbar`：全站主滚动区的悬浮滚动条，支持拖动、轨道点击和键盘操作；DOM ID 为 `ss-scrollbar`，滑块 className 为 `psb-thumb`。不占正文宽度，弹窗打开时随正文滚动一起禁用。
+- `PageTemplate`：main 页面骨架，页面标题和 children 容器；`maxWidth` 支持 MUI 断点、像素数字或 false，可按页面独立设置，默认保留普通页面 lg、分页页面全宽的行为。
+- `PageScreen`：固定一窗口高度的分页容器，独立背景、可选 `overlayColor` 背景遮罩、内部溢出滚动；作为 `PageTemplate paginated` 的直接子元素使用。`ignoreNav=false` 时首屏自动扣除实际导航高度，true 时正文与导航重叠。
 - `PageSection`（带小标题的页面分区，使用常见 Section 命名）：只接收 `title`、`children`，无额外外边距。
 - `ResponsiveCardGrid`（响应式卡片矩阵）：使用 MUI Grid，xs/sm/md/lg 分别每行 1/2/3/4 张。
 - `CardLinkAction`（可导航的卡片操作区）：复用 MUI CardActionArea 的 hover、focus 和点击涟漪，内链使用 Next Link，HTTP(S) 外链新标签页打开并设置 rel。
@@ -17,7 +22,17 @@
 
 关键 ID：`login-form`、`login-username`、`login-password`；footer 为 `site-footer`。
 
+## Home：最多 3 层
+
+1. `HomePage`
+2. `PageTemplate`，`paginated=true`、`ignoreNav=true`、`transparentNav=true`
+3. `PageScreen`，首屏图片背景与深色遮罩，第二屏透明背景
+
+关键 ID：`home-intro`、`home-more`；可重复分页使用 className `page-screen`。首屏使用 `/images/backgrounds/bg1.JPG` 与 65% 黑色背景遮罩，中央以响应式大字显示 `siteConfig.title`，采用与导航标题相同的衬线字体和字重；第二屏不指定背景色，保持透明。背景图片通过 `cover` 居中裁剪，footer 排在全部分页之后。分页模式自动去掉模板外边距并视觉隐藏 h1，Home 每屏为完整窗口高度，背景延伸至导航后方并铺满两侧。导航背景不透明度为 60%，不改变文字、按钮透明度。
+
 ## Connect：最多 6 层
+
+页面使用 `PageBackground` 固定全屏显示 `/images/backgrounds/bg2.JPG`，叠加 60% 黑色遮罩；正文布局与导航设置不变。
 
 1. `ConnectPage`
 2. `PageTemplate`
@@ -30,7 +45,7 @@
 
 `SocialLinkCard` 属性：`image?`（icons 内相对地址）、`iconName?`、`platform`、`socialId`、`href`。图片优先于图标；不提供图片与名称时使用 Language 图标。名称支持 Email、GitHub、Instagram、Language、LinkedIn、YouTube，通过静态导入避免打包完整图标库。
 
-Connect 卡片固定高度为 140px，四周保留 8px 外边距。内容内边距与图文间距为 16px，头像为 56px。
+Connect 卡片固定高度为 140px，四周保留 8px 外边距。内容内边距与图文间距为 16px，头像为 56px。卡片采用磨砂玻璃背景：theme paper 底色 45% 不透明度、12px 背景模糊、140% 饱和度和细半透明边框，文字与图标不模糊；不支持 backdrop-filter 时使用 90% 不透明底色。
 
 测试常数 `debugSocialLinks` 位于 ConnectPage 下方，示例账号和地址不是网站主的真实资料。
 
@@ -104,9 +119,11 @@ Articles 分支：
 
 Recommended 中 `compact=true` 的 PostCard 固定高度为 88px；封面区域宽 88px，填满内容高度并通过 `object-fit: cover` 居中裁切，图片比例不影响卡片高度。无封面时保持同样高度。
 
-普通 PostCard 和详情页概述最多显示三行，超出省略；Recommended 概述保持单行省略。连续长文本在可用宽度内换行，完整概述保留在 title 提示中，文章正文不截断。
+普通 PostCard 和 Recommended 概述均单行显示，不换行，超出省略，完整概述保留在 title 提示中；详情页不再重复展示概述，文章正文不截断。
 
-详情：第 1 层 `PostDetailPage`（让测试卡片有实际可访问的详情页），第 2 层 `PageTemplate`。目前仅显示封面、日期和摘要，不包含真实正文或数据库读取。未知 ID 返回 404。关键 ID：根 `post-detail`；内部 `pd-image`、`pd-date`、`pd-description`、`pd-debug-note`。
+列表发布时间、详情页发布时间与更新时间通过 `formatPostTimestamp` 统一显示为 `YYYY-MM-DD HH:mm`，使用 UTC、24 小时制；存储和 `time.dateTime` 仍保留完整 ISO 时间。
+
+详情：第 1 层 `PostDetailPage`，第 2 层 `PageTemplate`。展示封面、标题、标签、时间与 Markdown 正文，不重复展示摘要；文章标题靠左，标签排在标题下方，发布／更新时间在右侧上下排列，采用 MUI `caption` 和 `text.disabled`，窄屏换行后仍右对齐，长标题自动换行。模板保留视觉隐藏的 h1，正文标题为 h2。未知 ID 返回 404。关键 ID：根 `post-detail`；内部 `pd-image`、`pd-title`、`pd-date`、`pd-updated-date`。
 
 ## DOM 标识缩写约定
 
