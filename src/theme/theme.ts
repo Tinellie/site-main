@@ -21,8 +21,24 @@ export const theme = createTheme({
       styleOverrides: {
         html: { height: "100%", overflow: "hidden" },
         body: { height: "100%", overflow: "hidden" },
+        "::view-transition-group(site-page), ::view-transition-old(site-page), ::view-transition-new(site-page)": {
+          animationDuration: "150ms",
+          animationTimingFunction: "ease-in-out",
+        },
+        "::view-transition-old(root), ::view-transition-new(root)": {
+          animation: "none",
+        },
+        "@media (prefers-reduced-motion: reduce)": {
+          "::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*)": {
+            animationDuration: "0s !important",
+            animationDelay: "0s !important",
+          },
+        },
         "body:has(.MuiModal-root:not(.MuiModal-hidden)) #ss-page": {
           overflowY: "hidden",
+        },
+        "body:has(.MuiModal-root:not(.MuiModal-hidden)) #ss-scrollbar": {
+          display: "none",
         },
         "*::-webkit-scrollbar": { width: 10, height: 10 },
         "*::-webkit-scrollbar-track, *::-webkit-scrollbar-corner": {

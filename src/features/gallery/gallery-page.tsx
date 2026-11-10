@@ -14,9 +14,8 @@ import {
   Alert,
   Box,
   Breadcrumbs,
-  Button,
   Card, CardActionArea,
-  Dialog, DialogActions, DialogContent, DialogTitle,
+  Dialog, DialogContent, DialogTitle,
   Link,
   MenuItem,
   Stack,
@@ -78,6 +77,7 @@ export function GalleryPage({
   const [sort, setSort] = useState("name-asc");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [selected, setSelected] = useState<AssetEntry | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const visible = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     const collator = new Intl.Collator(undefined, { numeric: true });
@@ -175,29 +175,64 @@ export function GalleryPage({
               {entry.kind === "folder" ? (
                 <CardActionArea component={NextLink} href={entry.url} prefetch={false} sx={sx}>{content}</CardActionArea>
               ) : (
-                <CardActionArea onClick={() => setSelected(entry)} sx={sx}>{content}</CardActionArea>
+                <CardActionArea onClick={() => {
+                  setSelected(entry);
+                  setPreviewOpen(true);
+                }} sx={sx}>{content}</CardActionArea>
               )}
             </Card>;
           })}
         </Box>
       </Stack>
-      <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ overflowWrap: "anywhere" }}>{selected?.name}</DialogTitle>
-        <DialogContent>
+      <Dialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        fullScreen
+        aria-labelledby="gallery-preview-title"
+        slotProps={{
+          transition: { onExited: () => setSelected(null) },
+          paper: {
+            sx: {
+              bgcolor: "transparent",
+              backgroundImage: "none",
+              boxShadow: "none",
+              pointerEvents: "none",
+            },
+          },
+        }}
+      >
+        <DialogTitle
+          id="gallery-preview-title"
+          title={selected?.name}
+          sx={{
+            textAlign: "center",
+            flexShrink: 0,
+            bgcolor: "rgba(0, 0, 0, 0.6)",
+          }}
+          noWrap
+        >
+          {selected?.name}
+        </DialogTitle>
+        <DialogContent sx={{
+          display: "flex", flexDirection: "column", alignItems: "center",
+          justifyContent: "center", minHeight: 0, gap: 1, p: { xs: 2, sm: 3 },
+          "& > *": { pointerEvents: "auto" },
+        }}>
           {selected?.kind === "image" && <Box component="img" src={selected.url} alt={selected.name}
-            sx={{ display: "block", maxWidth: "100%", maxHeight: "70vh", mx: "auto", objectFit: "contain" }} />}
+            sx={{ display: "block", maxWidth: "100%", maxHeight: "100%", minHeight: 0, objectFit: "contain" }} />}
           {selected?.kind === "video" && <Box component="video" src={selected.url} controls
-            sx={{ width: "100%", maxHeight: "70vh" }} />}
-          {selected?.kind === "audio" && <Box component="audio" src={selected.url} controls sx={{ width: "100%" }} />}
-          {selected?.kind === "text" && <TextPreview key={selected.url} url={selected.url} />}
-          {selected?.kind === "file" && <Alert severity="info">此格式不支持内嵌预览，请打开原文件。</Alert>}
+            sx={{ maxWidth: "100%", maxHeight: "100%", minHeight: 0 }} />}
+          {selected?.kind === "audio" && <Box component="audio" src={selected.url} controls
+            sx={{ width: "100%", maxWidth: 600 }} />}
+          {selected?.kind === "text" && (
+            <Box sx={{ width: "100%", maxWidth: 960, maxHeight: "100%", overflow: "auto" }}>
+              <TextPreview key={selected.url} url={selected.url} />
+            </Box>
+          )}
+          {selected?.kind === "file" && <Typography>此格式不支持内嵌预览。</Typography>}
           {(selected?.kind === "video" || selected?.kind === "audio") &&
             <Typography variant="caption">媒体能否播放取决于浏览器支持的格式和编码。</Typography>}
         </DialogContent>
-        <DialogActions>
-          {selected && <Button component="a" href={selected.url} target="_blank" rel="noopener noreferrer">打开原文件</Button>}
-          <Button onClick={() => setSelected(null)}>关闭</Button>
-        </DialogActions>
       </Dialog>
     </PageTemplate>
   );
