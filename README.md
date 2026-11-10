@@ -15,6 +15,7 @@
 - `npm run build`：生产构建。
 - `npm start`：启动生产构建。
 - `npm run test:auth`：运行认证基础单元测试。
+- `npm run test:blog`：运行 Blog 时间展示格式单元测试。
 
 Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.js 24。
 
@@ -50,8 +51,8 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 - `title`：顶部居中的 h1，空字符串或未提供时不渲染。
 - `hideTitle`：默认 false；通过 MUI `visuallyHidden` 保留 DOM 中的 h1，但不占正常布局空间。它不负责鉴权或后台数据。
 - `children`：页面内容。
-- `removeMargin`：默认 false；设为 true 时去掉内容容器四周外边距，使内容可使用全部可用宽度。不会自动隐藏导航或让内容高度撑满视口。
-- `removeMargin`：默认 false；main 使用 MUI Container 居中，最大宽度为 lg（默认 1200px），通常左右留白各 48px。可用窗口宽度在 336–416px 时内容保持 320px，留白从 8px 增至 48px；小于 336px 时保持各 8px 留白，内容随窗口缩小以避免溢出。内容上下外边距为 24px。设为 true 时取消最大宽度、左右留白和内容上下外边距，使用完整可用宽度。不会自动隐藏导航或移除标题本身的顶部间距。
+- `removeMargin`：默认 false；main 使用 MUI Container 居中，默认最大宽度为 lg（1200px），通常左右留白各 48px。可用窗口宽度在 336–416px 时内容保持 320px，留白从 8px 增至 48px；小于 336px 时保持各 8px 留白，内容随窗口缩小以避免溢出。内容上下外边距为 24px。设为 true 时去掉这些留白，默认取消最大宽度；不会自动隐藏导航或移除标题本身的顶部间距。
+- `maxWidth`：按当前 `PageTemplate` 设置正文容器最大宽度，支持 MUI 断点 `"xs" | "sm" | "md" | "lg" | "xl"`、像素数字（如 `maxWidth={960}`）或 `false`（无最大宽度限制）。默认普通页面为 `"lg"`，`removeMargin` 或 `paginated` 页面为 `false`；显式设置优先于这些默认值。正文仍居中且随窄窗口收缩，原有留白独立保留。该参数不作用于独立的 `PageScreen`，分页页面显式设置它会同时限制分页背景的宽度。
 - `ignoreNav`：默认 false，正文从导航下方开始；true 时正文滚动区从窗口顶部开始，导航固定覆盖在正文上，不占正文高度。普通页面和分页页面均可使用。
 - `transparentNav`：默认 false；true 时导航背景不透明度为 60%，文字和按钮不受影响。与 `ignoreNav` 独立控制；需要正文背景透过导航显示时同时设置 `ignoreNav=true`。Home 已启用半透明导航与 `ignoreNav=true`，首屏背景为 `/images/backgrounds/bg1.JPG`。
 - `paginated`：默认 false；true 时启用下面的固定一屏分页，自动去掉模板外边距与最大宽度，页面 h1 保留但视觉隐藏，避免挤占首屏高度。
@@ -162,6 +163,8 @@ Vditor 组件内部引入其官方必需样式，这不属于应用布局样式�
 `gray-matter`（不是 `greymatter`）只解析 front matter，不负责渲染 Markdown、HTML 安全处理或自动持久化。当前解析工具仅面向可信作者内容。
 
 文章以 `content/blog/[id].md` 保存，历史版本会在编辑时移动到 `content/blog/history/[id]/`。front matter 包含 `id`、`title`、`coverImage`、`publishedAt`、`updatedAt`、`tags`、`summary`。
+
+Blog 列表与详情页时间统一显示为 `YYYY-MM-DD HH:mm`（24 小时制，保持 UTC），不显示秒和毫秒；底层 ISO 时间和 HTML `time` 的 `dateTime` 属性不变。列表及推荐卡片摘要为单行，超出省略，完整摘要保留在 title 提示中；详情页不重复显示摘要。详情页标签位于左侧，发布／更新时间在右侧上下排列，使用 MUI `caption` 与 `text.disabled` 低亮度颜色；窄屏可换行但时间仍右对齐。
 
 封面图栏位填写 `$$` 时，保存会自动采用正文第一张 Markdown 图片（支持内联和引用式图片，忽略代码与注释中的示例）；没有图片则封面留空。元数据保存实际图片地址，而非 `$$`。也支持 HTTP(S) 图片地址。
 

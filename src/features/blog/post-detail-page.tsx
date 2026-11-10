@@ -1,15 +1,16 @@
 "use client";
 
-import { CardMedia, Chip, Stack, Typography } from "@mui/material";
+import { Box, CardMedia, Chip, Stack, Typography } from "@mui/material";
 
 import { PageTemplate } from "@/components/layout/page-template";
 import { EditPostFab } from "@/features/blog/edit-post-fab";
+import { formatPostTimestamp } from "@/features/blog/format-timestamp";
 import type { BlogPost } from "@/features/blog/types";
 import { MarkdownPreview } from "@/features/editor/components/markdown-preview";
 
 export function PostDetailPage({ post }: { post: BlogPost }) {
   return (
-    <PageTemplate title={post.title}>
+    <PageTemplate title={post.title} hideTitle maxWidth="md">
       <Stack id="post-detail" spacing={2}>
         {post.coverImage && (
           <CardMedia
@@ -17,55 +18,50 @@ export function PostDetailPage({ post }: { post: BlogPost }) {
             component="img"
             image={post.coverImage}
             alt={post.title}
-            sx={{ maxHeight: 480, objectFit: "cover" }}
+            sx={{ aspectRatio: "3", objectFit: "cover" }}
           />
         )}
 
-        <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-          {post.tags.map((tag) => (
-            <Chip key={tag} label={tag} size="small" variant="outlined" />
-          ))}
-        </Stack>
-
-        <Typography id="pd-date" component="time" dateTime={post.publishedAt} variant="body2" color="text.secondary">
-          发布于 {post.publishedAt}
-        </Typography>
-        {post.updatedAt && (
-          <Typography
-            id="pd-updated-date"
-            component="time"
-            dateTime={post.updatedAt}
-            variant="body2"
-            color="text.secondary"
+        <Box sx={{ padding: 2 }}>
+          <Stack
+            direction="row"
+            spacing={2}
+            useFlexGap
+            sx={{
+              flexWrap: "wrap",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              mb: 2,
+            }}
           >
-            更新于 {post.updatedAt}
-          </Typography>
-        )}
-
-        <Typography
-          id="pd-description"
-          color="text.secondary"
-          title={post.summary}
-          sx={{
-            display: "-webkit-box",
-            WebkitBoxOrient: "vertical",
-            WebkitLineClamp: 3,
-            overflow: "hidden",
-            overflowWrap: "anywhere",
-          }}
-        >
-          {post.summary}
-        </Typography>
-
-        <MarkdownPreview markdown={post.content} />
-
-        <Typography
-          id="pd-debug-note"
-          variant="body2"
-          color="text.secondary"
-        >
-          文章内容基于 Markdown 渲染。
-        </Typography>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+              {post.tags.map((tag) => (
+                <Chip key={tag} label={tag} size="small" variant="outlined" />
+              ))}
+            </Stack>
+            <Stack sx={{ ml: "auto", alignItems: "flex-end", textAlign: "right", color: "text.disabled" }}>
+              <Typography
+                id="pd-date"
+                component="time"
+                dateTime={post.publishedAt}
+                variant="caption"
+              >
+                发布于 {formatPostTimestamp(post.publishedAt)}
+              </Typography>
+              {post.updatedAt && (
+                <Typography
+                  id="pd-updated-date"
+                  component="time"
+                  dateTime={post.updatedAt}
+                  variant="caption"
+                >
+                  更新于 {formatPostTimestamp(post.updatedAt)}
+                </Typography>
+              )}
+            </Stack>
+          </Stack>
+          <MarkdownPreview markdown={post.content} />
+        </Box>
       </Stack>
       <EditPostFab id={post.id} />
     </PageTemplate>

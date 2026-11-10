@@ -8,7 +8,7 @@
 - `AuthProvider`：维护客户端登录状态，在加载、窗口聚焦和每分钟查询服务端会话；写入权限仍由服务端独立判断。
 - `AuthControls`：footer 的登录、账号、退出和认证错误提示。
 - `PageScrollbar`：全站主滚动区的悬浮滚动条，支持拖动、轨道点击和键盘操作；DOM ID 为 `ss-scrollbar`，滑块 className 为 `psb-thumb`。不占正文宽度，弹窗打开时随正文滚动一起禁用。
-- `PageTemplate`：main 页面骨架，页面标题和 children 容器，沿用已有命名。
+- `PageTemplate`：main 页面骨架，页面标题和 children 容器；`maxWidth` 支持 MUI 断点、像素数字或 false，可按页面独立设置，默认保留普通页面 lg、分页页面全宽的行为。
 - `PageScreen`：固定一窗口高度的分页容器，独立背景、可选 `overlayColor` 背景遮罩、内部溢出滚动；作为 `PageTemplate paginated` 的直接子元素使用。`ignoreNav=false` 时首屏自动扣除实际导航高度，true 时正文与导航重叠。
 - `PageSection`（带小标题的页面分区，使用常见 Section 命名）：只接收 `title`、`children`，无额外外边距。
 - `ResponsiveCardGrid`（响应式卡片矩阵）：使用 MUI Grid，xs/sm/md/lg 分别每行 1/2/3/4 张。
@@ -115,9 +115,11 @@ Articles 分支：
 
 Recommended 中 `compact=true` 的 PostCard 固定高度为 88px；封面区域宽 88px，填满内容高度并通过 `object-fit: cover` 居中裁切，图片比例不影响卡片高度。无封面时保持同样高度。
 
-普通 PostCard 和详情页概述最多显示三行，超出省略；Recommended 概述保持单行省略。连续长文本在可用宽度内换行，完整概述保留在 title 提示中，文章正文不截断。
+普通 PostCard 和 Recommended 概述均单行显示，不换行，超出省略，完整概述保留在 title 提示中；详情页不再重复展示概述，文章正文不截断。
 
-详情：第 1 层 `PostDetailPage`（让测试卡片有实际可访问的详情页），第 2 层 `PageTemplate`。目前仅显示封面、日期和摘要，不包含真实正文或数据库读取。未知 ID 返回 404。关键 ID：根 `post-detail`；内部 `pd-image`、`pd-date`、`pd-description`、`pd-debug-note`。
+列表发布时间、详情页发布时间与更新时间通过 `formatPostTimestamp` 统一显示为 `YYYY-MM-DD HH:mm`，使用 UTC、24 小时制；存储和 `time.dateTime` 仍保留完整 ISO 时间。
+
+详情：第 1 层 `PostDetailPage`，第 2 层 `PageTemplate`。展示封面、标签、时间与 Markdown 正文，不重复展示摘要；标签靠左，发布／更新时间在右侧上下排列，采用 MUI `caption` 和 `text.disabled`，窄屏换行后仍右对齐。未知 ID 返回 404。关键 ID：根 `post-detail`；内部 `pd-image`、`pd-date`、`pd-updated-date`。
 
 ## DOM 标识缩写约定
 

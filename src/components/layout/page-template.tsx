@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Container, Typography, type ContainerProps } from "@mui/material";
 import { visuallyHidden } from "@mui/utils";
 
 export interface PageTemplateProps {
@@ -13,6 +13,7 @@ export interface PageTemplateProps {
   ignoreNav?: boolean;
   transparentNav?: boolean;
   paginated?: boolean;
+  maxWidth?: ContainerProps["maxWidth"] | number;
 }
 
 const pageLayout = {
@@ -30,9 +31,11 @@ export function PageTemplate({
   ignoreNav = false,
   transparentNav = false,
   paginated = false,
+  maxWidth,
 }: PageTemplateProps) {
   const hasTitle = Boolean(title?.trim());
   const fullWidth = removeMargin || paginated;
+  const contentMaxWidth = maxWidth ?? (fullWidth ? false : "lg");
 
   return (
     <Container
@@ -42,14 +45,17 @@ export function PageTemplate({
       data-transparent-nav={transparentNav}
       aria-labelledby={hasTitle ? "pt-title" : undefined}
       disableGutters
-      maxWidth={fullWidth ? false : "lg"}
+      maxWidth={typeof contentMaxWidth === "number" ? false : contentMaxWidth}
       sx={(theme) => ({
         flex: 1,
         flexShrink: 0,
-        // Auto margins center the container; maxWidth uses MUI's lg breakpoint.
+        // Auto margins center the container within the configured maximum width.
         width: fullWidth
           ? "100%"
           : `max(min(${pageLayout.minimumContentWidth}px, calc(100% - ${theme.spacing(pageLayout.minimumGutter * 2)})), calc(100% - ${theme.spacing(pageLayout.horizontalGutter * 2)}))`,
+        ...(typeof contentMaxWidth === "number" && {
+          maxWidth: `${contentMaxWidth}px`,
+        }),
       })}
     >
       {hasTitle && (
@@ -70,6 +76,8 @@ export function PageTemplate({
           ...(paginated && {
             "& > .page-screen:first-of-type": { height: "100cqh" },
           }),
+          borderRadius: 3,
+          overflow: "hidden",
         }}
       >
         {children}
