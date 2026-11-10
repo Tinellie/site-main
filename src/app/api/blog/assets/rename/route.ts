@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { renameAssetFile } from "@/lib/blog/post-store";
+import { authFailure } from "@/lib/auth/http";
+import { authorizeWrite } from "@/lib/auth/session";
 
 export async function PATCH(request: Request) {
+  try {
+    await authorizeWrite(request);
+  } catch (error) {
+    return authFailure(error);
+  }
   let payload: unknown;
   try {
     payload = await request.json();

@@ -5,6 +5,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import matter from "gray-matter";
+import { requireEditor } from "@/lib/auth/session";
 
 const POST_FILE_NAME = /^([1-9]\d*)\.md$/;
 const SUMMARY_LENGTH = 140;
@@ -251,6 +252,7 @@ export async function getNextPostId(): Promise<number> {
 }
 
 export async function savePost(input: SavePostInput): Promise<BlogPost> {
+  await requireEditor();
   validateId(input.id);
   const title = input.title.trim();
   if (!title) {
@@ -339,6 +341,7 @@ export function validateAssetRelativePath(relativePath: string): string {
 }
 
 export async function writeUploadedAsset(file: File): Promise<string> {
+  await requireEditor();
   const originalName = file.name || "image";
   const extension = path.extname(originalName).toLowerCase() || ".png";
   const baseName = path.basename(originalName, extension) || "image";
@@ -355,6 +358,7 @@ export async function renameAssetFile(
   sourceRelativePath: string,
   targetRelativePath: string,
 ): Promise<string> {
+  await requireEditor();
   const sourceRelative = validateAssetRelativePath(sourceRelativePath);
   const targetRelative = validateAssetRelativePath(targetRelativePath);
   const sourcePath = path.join(BLOG_ASSET_ROOT, sourceRelative);

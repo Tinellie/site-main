@@ -1,7 +1,8 @@
 import "server-only";
 
 import { drizzle } from "drizzle-orm/mysql2";
-import { createPool, type Pool } from "mysql2/promise";
+import { createPool } from "mysql2";
+import type { Pool } from "mysql2/promise";
 
 import * as schema from "@/db/schema";
 
@@ -17,11 +18,24 @@ export function getDb() {
     throw new Error("请先在 .env 中配置 DATABASE_URL，再使用数据库功能。");
   }
 
-  const pool = (databaseGlobal.blogMysqlPool ??= createPool({
-    uri: url,
-    connectionLimit: 5,
-    timezone: "Z",
-  }));
+  if (!databaseGlobal.blogMysqlPool) {
+    const pool = createPool({
+      uri: url,
+      connectionLimit: 5,
+      timezone: "Z",
+    });
+    // The driver's timezone only controls conversion, not MySQL's session clock.
+    pool.on("connection", (connection) => {
+      connection.query("SET time_zone = '+00:00'", (error) => {
+        if (error) {
+          console.error("Failed to set MySQL session timezone:", error);
+          connection.destroy();
+        }
+      });
+    });
+    databaseGlobal.blogMysqlPool = pool.promise();
+  }
+  const pool = databaseGlobal.blogMysqlPool;
 
   return drizzle({ client: pool, schema, mode: "default" });
 }
