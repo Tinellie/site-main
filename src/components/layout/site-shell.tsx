@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Box, Stack } from "@mui/material";
 
 import { SiteNav, type NavItem } from "@/components/navigation/site-nav";
+import { AuthControls } from "@/features/auth/auth-controls";
 
 const navigationItems = [
   { label: "Home", href: "/" },
@@ -72,6 +73,18 @@ export function SiteShell({ children }: { children: ReactNode }) {
         }}
       >
         {children}
+        <Box
+          component="footer"
+          id="site-footer"
+          sx={{
+            flexShrink: 0,
+            display: "flex",
+            justifyContent: "flex-start",
+            p: 2,
+          }}
+        >
+          <AuthControls />
+        </Box>
       </Box>
     </Stack>
   );

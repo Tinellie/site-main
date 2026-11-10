@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { writeUploadedAsset } from "@/lib/blog/post-store";
+import { authFailure } from "@/lib/auth/http";
+import { authorizeWrite } from "@/lib/auth/session";
 
 interface UploadResult {
   code: 0 | 1;
@@ -23,6 +25,11 @@ function uploadError(message: string): NextResponse<UploadResult> {
 }
 
 export async function POST(request: Request) {
+  try {
+    await authorizeWrite(request);
+  } catch (error) {
+    return authFailure(error);
+  }
   const formData = await request.formData();
   const files = [...formData.values()].filter((value): value is File => value instanceof File);
 

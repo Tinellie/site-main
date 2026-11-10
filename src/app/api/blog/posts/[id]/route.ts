@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getPostById, savePost } from "@/lib/blog/post-store";
+import { authFailure } from "@/lib/auth/http";
+import { authorizeWrite } from "@/lib/auth/session";
 
 function parsePostId(value: string): number | null {
   const id = Number(value);
@@ -30,6 +32,11 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  try {
+    await authorizeWrite(request);
+  } catch (error) {
+    return authFailure(error);
+  }
   const { id: rawId } = await params;
   const id = parsePostId(rawId);
   if (!id) {
