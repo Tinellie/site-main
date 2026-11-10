@@ -22,7 +22,7 @@ export function PostDetailPage({ post }: { post: BlogPost }) {
           />
         )}
 
-        <Box sx={{ padding: 2 }}>
+        <Box sx={{ py: 2 }}>
           <Stack
             direction="row"
             spacing={2}
@@ -34,10 +34,22 @@ export function PostDetailPage({ post }: { post: BlogPost }) {
               mb: 2,
             }}
           >
-            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-              {post.tags.map((tag) => (
-                <Chip key={tag} label={tag} size="small" variant="outlined" />
-              ))}
+            <Stack spacing={1} sx={{ flex: "1 1 200px", minWidth: 0 }}>
+              <Typography
+                id="pd-title"
+                component="h2"
+                variant="h4"
+                sx={{ overflowWrap: "anywhere" }}
+              >
+                {post.title}
+              </Typography>
+              {post.tags.length > 0 && (
+                <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+                  {post.tags.map((tag) => (
+                    <Chip key={tag} label={tag} size="small" variant="outlined" />
+                  ))}
+                </Stack>
+              )}
             </Stack>
             <Stack sx={{ ml: "auto", alignItems: "flex-end", textAlign: "right", color: "text.disabled" }}>
               <Typography

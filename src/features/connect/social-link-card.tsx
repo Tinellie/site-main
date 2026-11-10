@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  Avatar,
+  alpha, Avatar,
   Card, CardContent,
   Stack, Typography,
 } from "@mui/material";
@@ -37,11 +37,20 @@ export function SocialLinkCard({
   return (
     <Card
       className="social-link-card"
-      sx={{
+      sx={(theme) => ({
         borderRadius: 2,
         m: 1,
         height: 140,
-      }}
+        backgroundColor: alpha(theme.palette.background.paper, 0.9),
+        backgroundImage: "none",
+        border: "1px solid",
+        borderColor: alpha(theme.palette.common.white, 0.15),
+        "@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)))": {
+          backgroundColor: alpha(theme.palette.background.paper, 0.45),
+          backdropFilter: "blur(12px) saturate(140%)",
+          WebkitBackdropFilter: "blur(12px) saturate(140%)",
+        },
+      })}
     >
       <CardLinkAction
         href={href}

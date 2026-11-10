@@ -87,6 +87,28 @@ import { PageTemplate } from "@/components/layout/page-template";
 - `overlayColor` 为可选的 CSS 遮罩颜色，例如 `rgba(0, 0, 0, 0.5)`；设置后在背景图片上方叠加一层同色渐变，只影响背景，不改变正文透明度或阻挡交互。不设置时没有遮罩；`backgroundColor` 不设置时默认透明。Home 首屏使用 65% 黑色遮罩，中央大字读取 `siteConfig.title`，采用与导航标题相同的衬线字体和字重，第二屏不设置背景图片或颜色。
 - 背景填满正文可用宽度，全站主滚动区不再为滚动条预留两侧空间；footer 仍位于全部分页之后，不计入分页高度。
 
+### 固定全屏页面背景
+
+`PageBackground` 可在当前页面中使用一次，为整个窗口提供固定背景，不占正文空间，也不随正文滚动：
+
+```tsx
+import { PageBackground } from "@/components/layout/page-background";
+import { PageTemplate } from "@/components/layout/page-template";
+
+<PageTemplate title="文章">
+  <PageBackground
+    backgroundImage="/images/backgrounds/bg1.JPG"
+    backgroundColor="#18232e"
+    overlayColor="rgba(0, 0, 0, 0.5)"
+  />
+  正文内容
+</PageTemplate>
+```
+
+三个参数均可选，与 `PageScreen` 同名参数含义一致：图片居中 `cover` 铺满，`backgroundColor` 为底色，`overlayColor` 为背景上方的颜色遮罩，不改变正文透明度。背景覆盖导航后方和正文两侧，导航是否透出背景仍由 `transparentNav` 决定；不受 `maxWidth`、正文留白或 `ignoreNav` 影响。正文中的不透明卡片或分页背景仍会遮住它。
+
+通过 MUI `Portal` 将背景挂到 `SiteShell`，避开正文尺寸容器与裁剪边界；外壳使用隔离层叠上下文，保证背景在正文、导航、滚动条和弹窗下方，同时不落到 body 底色后面。背景不接收点击、不参与无障碍阅读，切换页面卸载后自动移除，并参与全屏路由交叉淡化。不使用该组件的页面保持不变。
+
 页面共用的单例节点使用 ID，导航按钮和可重复挂载的编辑器使用 className。Provider、路由和页面组件直接复用子组件的 DOM，不为添加标识额外创建包装元素。
 
 全站外壳固定为视口高度，使用 Grid 将导航与正文堆叠；`ignoreNav` 模式让正文跨越导航所在网格行。顶部导航自身全宽，不随正文滚动；`ss-page` 为可聚焦的独立正文滚动区域，隐藏原生滚动条且不预留 gutter，内容与背景可以使用完整宽度。根页面不滚动。正文滚动区也提供尺寸查询容器，Blog 侧栏使用其高度限制内部滚动。打开 MUI 弹窗或弹出菜单时锁定正文滚动并隐藏悬浮滚动条，Gallery 使用标准 Dialog 遮罩。
@@ -164,7 +186,7 @@ Vditor 组件内部引入其官方必需样式，这不属于应用布局样式�
 
 文章以 `content/blog/[id].md` 保存，历史版本会在编辑时移动到 `content/blog/history/[id]/`。front matter 包含 `id`、`title`、`coverImage`、`publishedAt`、`updatedAt`、`tags`、`summary`。
 
-Blog 列表与详情页时间统一显示为 `YYYY-MM-DD HH:mm`（24 小时制，保持 UTC），不显示秒和毫秒；底层 ISO 时间和 HTML `time` 的 `dateTime` 属性不变。列表及推荐卡片摘要为单行，超出省略，完整摘要保留在 title 提示中；详情页不重复显示摘要。详情页标签位于左侧，发布／更新时间在右侧上下排列，使用 MUI `caption` 与 `text.disabled` 低亮度颜色；窄屏可换行但时间仍右对齐。
+Blog 列表与详情页时间统一显示为 `YYYY-MM-DD HH:mm`（24 小时制，保持 UTC），不显示秒和毫秒；底层 ISO 时间和 HTML `time` 的 `dateTime` 属性不变。列表及推荐卡片摘要为单行，超出省略，完整摘要保留在 title 提示中；详情页不重复显示摘要。详情页文章标题位于左侧，标签排在标题下方，发布／更新时间在右侧上下排列，使用 MUI `caption` 与 `text.disabled` 低亮度颜色；窄屏可换行但时间仍右对齐，长标题自动换行。
 
 封面图栏位填写 `$$` 时，保存会自动采用正文第一张 Markdown 图片（支持内联和引用式图片，忽略代码与注释中的示例）；没有图片则封面留空。元数据保存实际图片地址，而非 `$$`。也支持 HTTP(S) 图片地址。
 

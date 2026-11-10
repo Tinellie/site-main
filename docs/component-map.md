@@ -4,6 +4,8 @@
 
 ## 共用组件
 
+- `PageBackground`：固定全窗口背景，支持 `backgroundImage`、`backgroundColor`、`overlayColor`；通过 MUI Portal 挂在隔离层叠的 `SiteShell` 内，不随正文滚动、不受正文宽度限制、不拦截交互，随所属页面卸载。className 为 `page-background`；与 `PageScreen` 的滚动分页背景独立。
+
 - `SiteShell`：全站外壳与正文滚动恢复，使用 React `ViewTransition` 统一实现 350ms 全屏交叉淡化，包含导航、正文、背景和 footer；不新增包装 DOM，尊重减少动态效果设置。
 - `AuthProvider`：维护客户端登录状态，在加载、窗口聚焦和每分钟查询服务端会话；写入权限仍由服务端独立判断。
 - `AuthControls`：footer 的登录、账号、退出和认证错误提示。
@@ -30,6 +32,8 @@
 
 ## Connect：最多 6 层
 
+页面使用 `PageBackground` 固定全屏显示 `/images/backgrounds/bg2.JPG`，叠加 60% 黑色遮罩；正文布局与导航设置不变。
+
 1. `ConnectPage`
 2. `PageTemplate`
 3. `SocialLinkGrid`（社交链接集合的矩阵容器）
@@ -41,7 +45,7 @@
 
 `SocialLinkCard` 属性：`image?`（icons 内相对地址）、`iconName?`、`platform`、`socialId`、`href`。图片优先于图标；不提供图片与名称时使用 Language 图标。名称支持 Email、GitHub、Instagram、Language、LinkedIn、YouTube，通过静态导入避免打包完整图标库。
 
-Connect 卡片固定高度为 140px，四周保留 8px 外边距。内容内边距与图文间距为 16px，头像为 56px。
+Connect 卡片固定高度为 140px，四周保留 8px 外边距。内容内边距与图文间距为 16px，头像为 56px。卡片采用磨砂玻璃背景：theme paper 底色 45% 不透明度、12px 背景模糊、140% 饱和度和细半透明边框，文字与图标不模糊；不支持 backdrop-filter 时使用 90% 不透明底色。
 
 测试常数 `debugSocialLinks` 位于 ConnectPage 下方，示例账号和地址不是网站主的真实资料。
 
@@ -119,7 +123,7 @@ Recommended 中 `compact=true` 的 PostCard 固定高度为 88px；封面区域�
 
 列表发布时间、详情页发布时间与更新时间通过 `formatPostTimestamp` 统一显示为 `YYYY-MM-DD HH:mm`，使用 UTC、24 小时制；存储和 `time.dateTime` 仍保留完整 ISO 时间。
 
-详情：第 1 层 `PostDetailPage`，第 2 层 `PageTemplate`。展示封面、标签、时间与 Markdown 正文，不重复展示摘要；标签靠左，发布／更新时间在右侧上下排列，采用 MUI `caption` 和 `text.disabled`，窄屏换行后仍右对齐。未知 ID 返回 404。关键 ID：根 `post-detail`；内部 `pd-image`、`pd-date`、`pd-updated-date`。
+详情：第 1 层 `PostDetailPage`，第 2 层 `PageTemplate`。展示封面、标题、标签、时间与 Markdown 正文，不重复展示摘要；文章标题靠左，标签排在标题下方，发布／更新时间在右侧上下排列，采用 MUI `caption` 和 `text.disabled`，窄屏换行后仍右对齐，长标题自动换行。模板保留视觉隐藏的 h1，正文标题为 h2。未知 ID 返回 404。关键 ID：根 `post-detail`；内部 `pd-image`、`pd-title`、`pd-date`、`pd-updated-date`。
 
 ## DOM 标识缩写约定
 

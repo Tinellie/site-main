@@ -76,6 +76,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       id="site-shell"
       sx={(theme) => ({
         height: "100dvh",
+        isolation: "isolate",
         overflow: "hidden",
         display: "grid",
         gridTemplateRows: "auto minmax(0, 1fr)",
