@@ -4,10 +4,18 @@
 
 ## 共用组件
 
+- `AuthProvider`：维护客户端登录状态，在加载、窗口聚焦和每分钟查询服务端会话；写入权限仍由服务端独立判断。
+- `AuthControls`：footer 的登录、账号、退出和认证错误提示。
 - `PageTemplate`：main 页面骨架，页面标题和 children 容器，沿用已有命名。
 - `PageSection`（带小标题的页面分区，使用常见 Section 命名）：只接收 `title`、`children`，无额外外边距。
 - `ResponsiveCardGrid`（响应式卡片矩阵）：使用 MUI Grid，xs/sm/md/lg 分别每行 1/2/3/4 张。
 - `CardLinkAction`（可导航的卡片操作区）：复用 MUI CardActionArea 的 hover、focus 和点击涟漪，内链使用 Next Link，HTTP(S) 外链新标签页打开并设置 rel。
+
+## 登录
+
+`/login` 路由调用 `LoginPage`，复用 `PageTemplate`，提供账号、密码、提交状态与失败提示。成功后仅跳转站内路径；不开放注册或网页重设密码。账号通过 `npm run auth:admin` 在服务器终端管理。
+
+关键 ID：`login-form`、`login-username`、`login-password`；footer 为 `site-footer`。
 
 ## Connect：最多 6 层
 

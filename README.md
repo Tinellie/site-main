@@ -2,7 +2,7 @@
 
 基于 TypeScript、React、Next.js App Router、MUI、MySQL、Drizzle ORM、Vditor 和 gray-matter。
 
-当前包含 Home、Connect、Works、Blog、Gallery 五个页面；Connect、Works 为测试数据，Blog 已接入本地 Markdown 存储与编辑流程。Home 和 Gallery 仍保留空白正文。没有登录页或完整管理后台。
+当前包含 Home、Connect、Works、Blog、Gallery 页面；Connect、Works 为测试数据，Blog 已接入本地 Markdown 存储与编辑流程。Home 保留空白正文。`/login` 支持本地管理员账号密码登录；游客只读，管理员可编辑文章、上传和重命名图片。
 
 组件调用层级、属性、测试常数、图片索引与关键 DOM 标识见 [docs/component-map.md](docs/component-map.md)。
 
@@ -14,6 +14,7 @@
 - `npm run typecheck`：TypeScript 检查。
 - `npm run build`：生产构建。
 - `npm start`：启动生产构建。
+- `npm run test:auth`：运行认证基础单元测试。
 
 Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.js 24。
 
@@ -58,6 +59,8 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 
 切换路径时正文回到顶部，带锚点的链接保留 Next.js 的定位行为；浏览器前进、后退恢复当前会话中按路径记录的正文滚动位置。
 
+透明 footer 位于正文滚动区末尾，左下角提供 `/login` 登录入口，避开右下角的文章新建和编辑按钮；内容不足一屏时由 main 的弹性高度将其推至底部，超过一屏时排在内容之后，不固定覆盖正文。
+
 全站滚动条使用透明轨道、圆角滑块；Chromium/WebKit 隐藏两端按钮，滑块 hover 时加亮。Firefox 使用原生细滚动条与透明轨道，按钮形态由浏览器决定。滚动条仍占据预留空间，不采用覆盖内容的模拟滚动条。
 
 ## 基础样式
@@ -80,6 +83,38 @@ Vditor 组件内部引入其官方必需样式，这不属于应用布局样式�
 服务端通过 `getDb()` 获取 Drizzle 实例。没有数据库配置或数据库服务时，空白首页仍可启动和构建；只有实际访问数据库才需要连接。
 
 数据库结构尚未应用到任何真实数据库。此项目不安装操作系统级 MySQL，也不会修改现有 gateway 项目。数据库应持久化、备份，并限制为应用内部访问。
+
+## 登录认证
+
+不增加 npm 依赖，不使用第三方登录。使用 Next.js Route Handlers、Node.js 内置 `crypto`、现有 MySQL / Drizzle ORM。认证账号由本地命令创建；所有账号都是管理员，不开放网页注册、密码找回或访客写入。
+
+### 首次设置
+
+1. 将 `.env.example` 复制为 `.env.local`，配置真实 `DATABASE_URL` 和 `AUTH_ORIGIN`。本地默认来源为 `http://localhost:3000`；如果使用其他端口，应同步修改。来源不能带路径或末尾斜杠。
+2. 在专用数据库执行 `npm run db:migrate`。已提供初始迁移，包含原有 posts 示例表及三个认证表；如果曾手动建表，应先核对现有结构及迁移记录，不要直接在有冲突的数据库执行。
+3. 在交互式终端执行 `npm run auth:admin -- admin`，输入并确认 9–128 字符的独立密码（不回显）。账号限 3–64 位英文字母、数字、下划线、连字符，统一转为小写。Node.js 需支持 `--experimental-strip-types`（22.6+；建议使用项目推荐的 Node.js 24）。
+4. 重启应用，在 footer 点击“登录”。没有数据库配置时游客仍可阅读，但登录会明确返回服务不可用，写操作不会放行。
+
+生产环境将 `AUTH_ORIGIN` 设为真实 HTTPS 来源，例如 `https://example.com`，由部署平台或反向代理配置 HTTPS。生产登录接口拒绝 HTTP 来源，Cookie 自动启用 `Secure`；本地使用 `npm run dev` 和 HTTP。应用不会替你安装证书或开放数据库端口。
+
+### 已实现的保护
+
+- 密码使用 `scrypt`、每个密码独立的 16 字节随机盐和 64 字节派生密钥，比较使用 `timingSafeEqual`；不保存明文密码。
+- 登录生成 32 字节随机会话令牌，数据库只保存 SHA-256 哈希和 24 小时绝对过期时间；Cookie 为 `HttpOnly`、`SameSite=Lax`、`Path=/`，生产环境使用 `__Host-` 名称与 `Secure`。
+- 每次写入校验会话过期及账号是否启用；数据库连接同时将客户端和 MySQL 会话时区设为 UTC。退出登录立即删除当前数据库会话；重新登录轮换当前令牌。
+- 登录、退出、保存、上传和重命名均严格校验 `Origin` 与 `AUTH_ORIGIN`，拒绝无 Origin、来源不匹配及跨站 Fetch 请求，配合 SameSite Cookie 防御 CSRF。这里使用来源校验方案，不额外生成 CSRF Token；脚本调用写接口也必须带正确 Origin。
+- MySQL 保存共享限流计数，事务中原子计数：每账号每 15 分钟最多 10 次登录尝试，全站最多 100 次（成功登录也计数）；超限返回 `429` 和 `Retry-After`。不信任代理传入的 IP；不永久锁号，但全站额度耗尽时正常登录也需等待。面向大规模公网流量仍建议在入口增加限流。
+- 游客隐藏新建／编辑入口；编辑路由服务端跳转登录，登录后仅跳转站内地址。所有现有写接口及存储层写函数校验登录，不依赖按钮隐藏。未认证返回 `401`，来源错误返回 `403`，认证服务故障返回 `503`。
+- 登录状态在页面加载、窗口重新聚焦及每分钟刷新；footer 显示账号及退出入口，失败明确提示。会话过期时保存失败但保留编辑器内容，可在新标签页重新登录后重试。
+- 文章和 assets 文件仍公开可读；此次不添加 Gallery 文件管理、注册、找回密码、MFA 或完整管理后台。
+
+### 管理和验证
+
+- 重设密码：`npm run auth:admin -- admin --reset`，同时撤销该账号全部旧会话。
+- 禁用账号：通过受信任的数据库管理工具将 `auth_users.enabled` 改为 `false`，已有会话立即失去写权限；不要公开数据库管理工具。
+- 过期会话在下次成功登录时清理，过期限流记录在登录尝试时清理；过期校验不依赖清理是否执行。
+- `npm run test:auth` 验证密码、账号规范、令牌哈希、站内跳转。
+- `npm run test:auth:integration` 需显式配置 `AUTH_TEST_DATABASE_URL`（仅接受本机独立的 `auth_validation` 数据库）、`AUTH_TEST_BASE_URL` 和与测试服务匹配的 `AUTH_TEST_ORIGIN`；缺失时跳过。测试服务与测试脚本必须指向同一独立数据库，先应用迁移。生产构建可在本机 HTTP 传输上以显式 HTTPS Origin 和 Cookie 测服务端，不代表浏览器支持 HTTP 生产登录。测试包含真实文章／上传／重命名操作并清理自己创建的文件，不要对实际发布服务运行。
 
 ## 编辑器与 Markdown
 

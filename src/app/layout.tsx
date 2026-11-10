@@ -4,6 +4,7 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { SiteShell } from "@/components/layout/site-shell";
 import { siteConfig } from "@/config/site";
 import { AppThemeProvider } from "@/theme/app-theme-provider";
+import { AuthProvider } from "@/features/auth/auth-provider";
 
 export const metadata: Metadata = {
   title: {
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body id="site-body">
         <AppRouterCacheProvider>
           <AppThemeProvider>
-            <SiteShell>{children}</SiteShell>
+            <AuthProvider>
+              <SiteShell>{children}</SiteShell>
+            </AuthProvider>
           </AppThemeProvider>
         </AppRouterCacheProvider>
       </body>

@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "auth:admin": "node --experimental-strip-types scripts/create-admin.mjs",
+    "test:auth": "node --experimental-strip-types --test tests/auth.test.mjs",
+    "test:auth:integration": "node --experimental-strip-types --test tests/auth.integration.test.mjs"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
