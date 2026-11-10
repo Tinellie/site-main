@@ -23,6 +23,7 @@ export function HomePage() {
             fontFamily: 'Georgia, "Times New Roman", serif',
             fontWeight: 500,
             letterSpacing: "0.3em",
+            paddingInlineStart: "0.3em",
             textAlign: "center",
             color: "common.white",
           }}
