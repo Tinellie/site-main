@@ -24,6 +24,9 @@ export const theme = createTheme({
         "body:has(.MuiModal-root:not(.MuiModal-hidden)) #ss-page": {
           overflowY: "hidden",
         },
+        "body:has(.MuiModal-root:not(.MuiModal-hidden)) #ss-scrollbar": {
+          display: "none",
+        },
         "*::-webkit-scrollbar": { width: 10, height: 10 },
         "*::-webkit-scrollbar-track, *::-webkit-scrollbar-corner": {
           background: "transparent",

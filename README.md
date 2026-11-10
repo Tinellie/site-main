@@ -2,7 +2,7 @@
 
 基于 TypeScript、React、Next.js App Router、MUI、MySQL、Drizzle ORM、Vditor 和 gray-matter。
 
-当前包含 Home、Connect、Works、Blog、Gallery 页面；Connect、Works 为测试数据，Blog 已接入本地 Markdown 存储与编辑流程。Home 保留空白正文。`/login` 支持本地管理员账号密码登录；游客只读，管理员可编辑文章、上传和重命名图片。
+当前包含 Home、Connect、Works、Blog、Gallery 页面；Home 为两屏背景示例，Connect、Works 为测试数据，Blog 已接入本地 Markdown 存储与编辑流程。`/login` 支持本地管理员账号密码登录；游客只读，管理员可编辑文章、上传和重命名图片。
 
 组件调用层级、属性、测试常数、图片索引与关键 DOM 标识见 [docs/component-map.md](docs/component-map.md)。
 
@@ -30,7 +30,7 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 | [src/components/layout/site-shell.tsx](src/components/layout/site-shell.tsx) | 导航数据常数与全站外壳 |
 | [src/components/layout/page-template.tsx](src/components/layout/page-template.tsx) | main 页面模板、标题、内容容器 |
 | [src/components/navigation/site-nav.tsx](src/components/navigation/site-nav.tsx) | 数据驱动的双侧导航，通过等宽网格列保持标题居中 |
-| [src/features/home/components/home-page.tsx](src/features/home/components/home-page.tsx) | 空白首页内容，后续扩展文章列表 |
+| [src/features/home/components/home-page.tsx](src/features/home/components/home-page.tsx) | 两屏背景与正文示例 |
 | [src/features/editor/components/markdown-editor.tsx](src/features/editor/components/markdown-editor.tsx) | 客户端按需加载的编辑器入口，首页不加载编辑器 |
 | [src/features/editor/components/vditor-editor.tsx](src/features/editor/components/vditor-editor.tsx) | Vditor 初始化与生命周期 |
 | [src/features/editor/types.ts](src/features/editor/types.ts) | 编辑器属性类型 |
@@ -52,16 +52,49 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 - `children`：页面内容。
 - `removeMargin`：默认 false；设为 true 时去掉内容容器四周外边距，使内容可使用全部可用宽度。不会自动隐藏导航或让内容高度撑满视口。
 - `removeMargin`：默认 false；main 使用 MUI Container 居中，最大宽度为 lg（默认 1200px），通常左右留白各 48px。可用窗口宽度在 336–416px 时内容保持 320px，留白从 8px 增至 48px；小于 336px 时保持各 8px 留白，内容随窗口缩小以避免溢出。内容上下外边距为 24px。设为 true 时取消最大宽度、左右留白和内容上下外边距，使用完整可用宽度。不会自动隐藏导航或移除标题本身的顶部间距。
+- `ignoreNav`：默认 false，正文从导航下方开始；true 时正文滚动区从窗口顶部开始，导航固定覆盖在正文上，不占正文高度。普通页面和分页页面均可使用。
+- `transparentNav`：默认 false；true 时导航背景不透明度为 60%，文字和按钮不受影响。与 `ignoreNav` 独立控制；需要正文背景透过导航显示时同时设置 `ignoreNav=true`。Home 已启用半透明导航与 `ignoreNav=true`，首屏背景为 `/images/backgrounds/bg1.JPG`。
+- `paginated`：默认 false；true 时启用下面的固定一屏分页，自动去掉模板外边距与最大宽度，页面 h1 保留但视觉隐藏，避免挤占首屏高度。
+
+### 按窗口高度分页
+
+在 `PageTemplate paginated` 内直接放置多个 `PageScreen`：
+
+```tsx
+import { PageScreen } from "@/components/layout/page-screen";
+import { PageTemplate } from "@/components/layout/page-template";
+
+<PageTemplate title="Home" paginated ignoreNav={false}>
+  <PageScreen
+    label="第一屏"
+    backgroundImage="/assets/proj.png"
+    overlayColor="rgba(0, 0, 0, 0.5)"
+  >
+    第一屏正文
+  </PageScreen>
+  <PageScreen label="第二屏" backgroundColor="#1c2938">
+    第二屏正文
+  </PageScreen>
+</PageTemplate>
+```
+
+- `ignoreNav=false`：第一屏高度为窗口减去实际导航高度，导航与第一屏合计正好一窗口；后续每屏为 `100dvh`。
+- `ignoreNav=true`：第一屏和后续每屏均为 `100dvh`，第一屏顶部在导航后方，不自动为正文添加避让。
+- `PageScreen` 固定高度，内容超出时在本屏内部滚动；滚到边界后继续滚动外层正文查看下一屏。不强制吸附或自动翻页。
+- 首屏使用正文尺寸容器的 `100cqh`，导航换行、窗口缩放、手机动态视口变化时自动调整，无需测量或硬编码导航高度。
+- `backgroundImage` 为图片 URL，默认居中 `cover` 铺满容器，保持比例、允许裁剪；`backgroundColor` 可独立使用或作为图片底色。`id` 支持锚点，`label` 提供无障碍名称，`sx` 可调整内边距等样式（默认 24px），不要覆盖分页高度。
+- `overlayColor` 为可选的 CSS 遮罩颜色，例如 `rgba(0, 0, 0, 0.5)`；设置后在背景图片上方叠加一层同色渐变，只影响背景，不改变正文透明度或阻挡交互。不设置时没有遮罩；`backgroundColor` 不设置时默认透明。Home 首屏使用 65% 黑色遮罩，中央大字读取 `siteConfig.title`，采用与导航标题相同的衬线字体和字重，第二屏不设置背景图片或颜色。
+- 背景填满正文可用宽度，全站主滚动区不再为滚动条预留两侧空间；footer 仍位于全部分页之后，不计入分页高度。
 
 页面共用的单例节点使用 ID，导航按钮和可重复挂载的编辑器使用 className。Provider、路由和页面组件直接复用子组件的 DOM，不为添加标识额外创建包装元素。
 
-全站外壳固定为视口高度，顶部导航自身全宽，不随正文滚动；`ss-page` 为可聚焦的独立正文滚动区域，仅在这里使用 `scrollbar-gutter: stable both-edges` 保持正文对称。根页面不滚动，导航背景和阴影无需补齐。正文滚动区也提供尺寸查询容器，Blog 侧栏使用其高度限制内部滚动。打开 MUI 弹窗或弹出菜单时锁定正文滚动，Gallery 使用标准 Dialog 遮罩，不再修改根元素的预留空间或 padding。
+全站外壳固定为视口高度，使用 Grid 将导航与正文堆叠；`ignoreNav` 模式让正文跨越导航所在网格行。顶部导航自身全宽，不随正文滚动；`ss-page` 为可聚焦的独立正文滚动区域，隐藏原生滚动条且不预留 gutter，内容与背景可以使用完整宽度。根页面不滚动。正文滚动区也提供尺寸查询容器，Blog 侧栏使用其高度限制内部滚动。打开 MUI 弹窗或弹出菜单时锁定正文滚动并隐藏悬浮滚动条，Gallery 使用标准 Dialog 遮罩。
 
 切换路径时正文回到顶部，带锚点的链接保留 Next.js 的定位行为；浏览器前进、后退恢复当前会话中按路径记录的正文滚动位置。
 
 透明 footer 位于正文滚动区末尾，左下角提供 `/login` 登录入口，避开右下角的文章新建和编辑按钮；内容不足一屏时由 main 的弹性高度将其推至底部，超过一屏时排在内容之后，不固定覆盖正文。
 
-全站滚动条使用透明轨道、圆角滑块；Chromium/WebKit 隐藏两端按钮，滑块 hover 时加亮。Firefox 使用原生细滚动条与透明轨道，按钮形态由浏览器决定。滚动条仍占据预留空间，不采用覆盖内容的模拟滚动条。
+全站主滚动区使用 `PageScrollbar`：10px 宽的透明轨道悬浮在正文最右侧，圆角滑块 hover 或键盘聚焦时加亮，不占布局宽度。内容仍由原生滚动容器处理，支持滚轮、触摸、正文键盘滚动与历史位置恢复；悬浮条支持拖动、点击轨道、滚轮及方向键、PageUp/PageDown、Home/End，并提供 ARIA 滚动条语义。窗口、内容尺寸和路由变化会自动更新滑块，没有溢出时不显示。分页内部、侧栏和弹窗等局部滚动区仍使用原生透明轨道滚动条。
 
 ## 基础样式
 

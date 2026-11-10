@@ -6,7 +6,9 @@
 
 - `AuthProvider`：维护客户端登录状态，在加载、窗口聚焦和每分钟查询服务端会话；写入权限仍由服务端独立判断。
 - `AuthControls`：footer 的登录、账号、退出和认证错误提示。
+- `PageScrollbar`：全站主滚动区的悬浮滚动条，支持拖动、轨道点击和键盘操作；DOM ID 为 `ss-scrollbar`，滑块 className 为 `psb-thumb`。不占正文宽度，弹窗打开时随正文滚动一起禁用。
 - `PageTemplate`：main 页面骨架，页面标题和 children 容器，沿用已有命名。
+- `PageScreen`：固定一窗口高度的分页容器，独立背景、可选 `overlayColor` 背景遮罩、内部溢出滚动；作为 `PageTemplate paginated` 的直接子元素使用。`ignoreNav=false` 时首屏自动扣除实际导航高度，true 时正文与导航重叠。
 - `PageSection`（带小标题的页面分区，使用常见 Section 命名）：只接收 `title`、`children`，无额外外边距。
 - `ResponsiveCardGrid`（响应式卡片矩阵）：使用 MUI Grid，xs/sm/md/lg 分别每行 1/2/3/4 张。
 - `CardLinkAction`（可导航的卡片操作区）：复用 MUI CardActionArea 的 hover、focus 和点击涟漪，内链使用 Next Link，HTTP(S) 外链新标签页打开并设置 rel。
@@ -16,6 +18,14 @@
 `/login` 路由调用 `LoginPage`，复用 `PageTemplate`，提供账号、密码、提交状态与失败提示。成功后仅跳转站内路径；不开放注册或网页重设密码。账号通过 `npm run auth:admin` 在服务器终端管理。
 
 关键 ID：`login-form`、`login-username`、`login-password`；footer 为 `site-footer`。
+
+## Home：最多 3 层
+
+1. `HomePage`
+2. `PageTemplate`，`paginated=true`、`ignoreNav=true`、`transparentNav=true`
+3. `PageScreen`，首屏图片背景与深色遮罩，第二屏透明背景
+
+关键 ID：`home-intro`、`home-more`；可重复分页使用 className `page-screen`。首屏使用 `/images/backgrounds/bg1.JPG` 与 65% 黑色背景遮罩，中央以响应式大字显示 `siteConfig.title`，采用与导航标题相同的衬线字体和字重；第二屏不指定背景色，保持透明。背景图片通过 `cover` 居中裁剪，footer 排在全部分页之后。分页模式自动去掉模板外边距并视觉隐藏 h1，Home 每屏为完整窗口高度，背景延伸至导航后方并铺满两侧。导航背景不透明度为 60%，不改变文字、按钮透明度。
 
 ## Connect：最多 6 层
 
