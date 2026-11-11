@@ -25,6 +25,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <ViewTransition name="site-page" default="none" update="page-crossfade">
                 <SiteShell>{children}</SiteShell>
               </ViewTransition>
+              {/* <SiteShell>{children}</SiteShell> */}
+
             </AuthProvider>
           </AppThemeProvider>
         </AppRouterCacheProvider>

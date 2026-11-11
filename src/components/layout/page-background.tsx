@@ -2,6 +2,8 @@
 
 import { Box, Portal } from "@mui/material";
 
+import { BackgroundMedia } from "@/components/layout/background-media";
+
 export interface PageBackgroundProps {
   backgroundImage?: string;
   backgroundColor?: string;
@@ -19,11 +21,6 @@ export function PageBackground({
   backgroundColor,
   overlayColor,
 }: PageBackgroundProps) {
-  const backgroundLayers = [
-    overlayColor && `linear-gradient(${overlayColor}, ${overlayColor})`,
-    backgroundImage && `url(${JSON.stringify(backgroundImage)})`,
-  ].filter(Boolean).join(", ");
-
   return (
     <Portal container={getBackgroundContainer}>
       <Box
@@ -31,16 +28,15 @@ export function PageBackground({
         aria-hidden="true"
         sx={{
           position: "fixed",
+          isolation: "isolate",
           inset: 0,
           zIndex: -1,
           pointerEvents: "none",
           backgroundColor,
-          backgroundImage: backgroundLayers || undefined,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
         }}
-      />
+      >
+        <BackgroundMedia backgroundImage={backgroundImage} overlayColor={overlayColor} />
+      </Box>
     </Portal>
   );
 }

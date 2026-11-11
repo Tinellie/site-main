@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/generate-card-icons.mjs",
+    "prebuild": "node scripts/generate-card-icons.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -14,6 +16,9 @@
     "auth:admin": "node --experimental-strip-types scripts/create-admin.mjs",
     "test:auth": "node --experimental-strip-types --test tests/auth.test.mjs",
     "test:blog": "node --experimental-strip-types --test tests/blog.test.mjs",
+    "test:theme": "node --experimental-strip-types --test tests/theme.test.mjs",
+    "test:cards": "node --experimental-strip-types --test tests/cards.test.mjs",
+    "test:cards:integration": "node --experimental-strip-types --test tests/cards.integration.test.mjs",
     "test:auth:integration": "node --experimental-strip-types --test tests/auth.integration.test.mjs"
   },
   "dependencies": {

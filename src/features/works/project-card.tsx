@@ -3,7 +3,7 @@
 import { Card, CardContent, CardMedia, Typography } from "@mui/material";
 
 import { CardLinkAction } from "@/components/cards/card-link-action";
-import { resolveImagePath } from "@/lib/images/resolve-image-path";
+import { resolveCardImagePath } from "@/features/cards/image-path";
 import type { WorkCardProps } from "@/features/works/types";
 
 export function ProjectCard({
@@ -25,13 +25,15 @@ export function ProjectCard({
           justifyContent: "flex-start",
         }}
       >
-        <CardMedia
+        {image && <CardMedia
           className="prc-image"
           component="img"
-          image={resolveImagePath(image)}
+          loading="lazy"
+          decoding="async"
+          image={resolveCardImagePath(image)}
           alt={title}
           sx={{ height: 176, flexShrink: 0 }}
-        />
+        />}
 
         <CardContent
           className="prc-content"

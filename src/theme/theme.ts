@@ -1,6 +1,20 @@
 "use client";
 
-import { createTheme } from "@mui/material";
+import { alpha, createTheme, type Theme } from "@mui/material";
+
+function glassSurface(theme: Theme) {
+  return {
+    backgroundColor: alpha(theme.palette.background.paper, 0.9),
+    backgroundImage: "none",
+    border: "1px solid",
+    borderColor: alpha(theme.palette.common.white, 0.15),
+    "@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)))": {
+      backgroundColor: alpha(theme.palette.background.paper, 0.45),
+      backdropFilter: "blur(12px) saturate(140%)",
+      WebkitBackdropFilter: "blur(12px) saturate(140%)",
+    },
+  };
+}
 
 export const theme = createTheme({
   cssVariables: true,
@@ -17,6 +31,17 @@ export const theme = createTheme({
     ].join(", "),
   },
   components: {
+    MuiCard: {
+      styleOverrides: { root: ({ theme }) => glassSurface(theme) },
+    },
+    MuiPopover: {
+      styleOverrides: { paper: ({ theme }) => glassSurface(theme) },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: ({ theme, ownerState }) => ownerState.fullScreen ? {} : glassSurface(theme),
+      },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         html: { height: "100%", overflow: "hidden" },

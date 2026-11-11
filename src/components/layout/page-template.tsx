@@ -8,6 +8,7 @@ import { visuallyHidden } from "@mui/utils";
 export interface PageTemplateProps {
   title?: string;
   hideTitle?: boolean;
+  hideScrollbar?: boolean;
   children?: ReactNode;
   removeMargin?: boolean;
   ignoreNav?: boolean;
@@ -26,6 +27,7 @@ const pageLayout = {
 export function PageTemplate({
   title,
   hideTitle = false,
+  hideScrollbar = false,
   children,
   removeMargin = false,
   ignoreNav = false,
@@ -43,6 +45,7 @@ export function PageTemplate({
       id="main-content"
       data-ignore-nav={ignoreNav}
       data-transparent-nav={transparentNav}
+      data-hide-scrollbar={hideScrollbar}
       aria-labelledby={hasTitle ? "pt-title" : undefined}
       disableGutters
       maxWidth={typeof contentMaxWidth === "number" ? false : contentMaxWidth}
@@ -76,7 +79,6 @@ export function PageTemplate({
           ...(paginated && {
             "& > .page-screen:first-of-type": { height: "100cqh" },
           }),
-          borderRadius: 3,
           overflow: "hidden",
         }}
       >

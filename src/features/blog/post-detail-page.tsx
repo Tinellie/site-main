@@ -18,7 +18,12 @@ export function PostDetailPage({ post }: { post: BlogPost }) {
             component="img"
             image={post.coverImage}
             alt={post.title}
-            sx={{ aspectRatio: "3", objectFit: "cover" }}
+            sx={{ 
+              aspectRatio: "3", 
+              objectFit: "cover",  
+              borderTopLeftRadius: 15,
+              borderTopRightRadius: 15,
+            }}
           />
         )}
 

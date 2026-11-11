@@ -3,7 +3,7 @@
 import { Card, CardContent, CardMedia, Typography } from "@mui/material";
 
 import { CardLinkAction } from "@/components/cards/card-link-action";
-import { resolveImagePath } from "@/lib/images/resolve-image-path";
+import { resolveCardImagePath } from "@/features/cards/image-path";
 import type { WorkCardProps } from "@/features/works/types";
 
 export function ArticleCard({
@@ -17,10 +17,12 @@ export function ArticleCard({
       className="article-card"
       sx={{ position: "relative", height: 88, flexShrink: 0 }}
     >
-      <CardMedia
+      {image && <CardMedia
         className="ac-background"
         component="img"
-        image={resolveImagePath(image)}
+        loading="lazy"
+        decoding="async"
+        image={resolveCardImagePath(image)}
         alt=""
         aria-hidden="true"
         sx={{
@@ -32,7 +34,7 @@ export function ArticleCard({
           opacity: 0.15,
           pointerEvents: "none",
         }}
-      />
+      />}
 
       <CardLinkAction
         href={href}

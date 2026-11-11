@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.generated/
 /out/
 
 # production
@@ -44,3 +45,4 @@ next-env.d.ts
 content/*
 
 public/assets/*
+!public/assets/proj-icon.png

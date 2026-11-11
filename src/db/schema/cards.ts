@@ -1,0 +1,12 @@
+import { int, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+
+export const contentCards = mysqlTable("content_cards", {
+  id: int("id").autoincrement().primaryKey(),
+  kind: mysqlEnum("kind", ["connect", "project", "article"]).notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  username: varchar("username", { length: 200 }).notNull().default(""),
+  link: varchar("link", { length: 2048 }).notNull(),
+  description: text("description").notNull(),
+  image: varchar("image", { length: 1024 }).notNull().default(""),
+  icon: varchar("icon", { length: 100 }).notNull().default("Language"),
+});
