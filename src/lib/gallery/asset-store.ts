@@ -3,22 +3,10 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-import type { AssetEntry, AssetKind } from "@/features/gallery/types";
+import type { AssetEntry } from "@/features/gallery/types";
+import { assetKind } from "@/features/gallery/asset-kind";
 
-const extensions: Partial<Record<AssetKind, readonly string[]>> = {
-  image: [".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".svg", ".bmp"],
-  video: [".mp4", ".webm", ".ogv", ".mov", ".mkv"],
-  audio: [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"],
-  text: [".txt", ".md", ".json", ".csv", ".xml", ".yaml", ".yml", ".log", ".js", ".ts", ".css", ".html"],
-};
-
-export function assetKind(name: string): AssetKind {
-  const extension = path.extname(name).toLowerCase();
-  for (const kind of ["image", "video", "audio", "text"] as const) {
-    if (extensions[kind]?.includes(extension)) return kind;
-  }
-  return "file";
-}
+export { assetKind } from "@/features/gallery/asset-kind";
 
 function missing(error: unknown): boolean {
   return error instanceof Error && "code" in error &&
@@ -28,6 +16,7 @@ function missing(error: unknown): boolean {
 export async function listAssets(segments: string[]): Promise<AssetEntry[] | null> {
   if (segments.some(segment =>
     !segment || segment === "." || segment === ".." ||
+    segment.startsWith(".gallery-operation-") || segment.startsWith(".asset-replace-") ||
     /[\\/\u0000-\u001f:]/.test(segment)
   )) return null;
 
@@ -42,7 +31,8 @@ export async function listAssets(segments: string[]): Promise<AssetEntry[] | nul
     }
     const entries = await fs.readdir(/* turbopackIgnore: true */ directory, { withFileTypes: true });
     return await Promise.all(entries
-      .filter(entry => entry.isDirectory() || entry.isFile())
+      .filter(entry => !entry.name.startsWith(".asset-replace-") && !entry.name.startsWith(".gallery-operation-") &&
+        (entry.isDirectory() || entry.isFile()))
       .map(async entry => {
         const stat = await fs.lstat(path.join(/* turbopackIgnore: true */ directory, entry.name));
         const parts = [...segments, entry.name].map(encodeURIComponent).join("/");

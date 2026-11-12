@@ -15,7 +15,7 @@ export async function GET(
       headers: {
         "Content-Type": image.contentType,
         "Content-Length": String(image.bytes.byteLength),
-        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
         "Content-Security-Policy": SVG_CONTENT_SECURITY_POLICY,
       },

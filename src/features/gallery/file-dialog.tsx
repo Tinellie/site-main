@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import NextLink from "next/link";
 import {
   Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle,
   Link, Stack, TextField, Typography,
 } from "@mui/material";
+import { Upload } from "@mui/icons-material";
 
 import type { AssetUsage } from "./types";
+import { assetKind, replacementAccept } from "./asset-kind";
 
 export type FileOperation =
   | { kind: "upload"; file: File }
-  | { kind: "edit"; path: string }
+  | { kind: "edit"; path: string; folder?: boolean }
   | { kind: "delete"; path: string };
 
 interface FileResponse {
@@ -42,6 +44,8 @@ export function FileDialog({ operation, onClose, onComplete }: {
   const [confirmReferences, setConfirmReferences] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [replacement, setReplacement] = useState<File | null>(null);
   const [initializing, setInitializing] = useState(true);
   const isDelete = operation.kind === "delete";
   const hasReferences = !!usage && (usage.connect || usage.works || usage.articles.length > 0);
@@ -92,24 +96,31 @@ export function FileDialog({ operation, onClose, onComplete }: {
   }, [path, initializing, isDelete, operation]);
 
   async function submit() {
+    if (savingRef.current) return;
     if (hasReferences && !confirmReferences) {
       setConfirmReferences(true);
       return;
     }
     setSaving(true);
+    savingRef.current = true;
     setError("");
     try {
       let response: Response;
-      if (operation.kind === "upload") {
+      if (operation.kind === "upload" || replacement) {
+        const uploadFile = operation.kind === "upload" ? operation.file : replacement;
+        if (!uploadFile) throw new Error("请选择替换文件。");
         const form = new FormData();
-        form.set("file", operation.file);
-        form.set("path", path);
-        response = await fetch("/api/gallery/files", { method: "POST", body: form });
+        form.set("file", uploadFile);
+        form.set("path", operation.kind === "edit" ? operation.path : path);
+        response = await fetch("/api/gallery/files", { method: operation.kind === "upload" ? "POST" : "PUT", body: form });
       } else {
-        response = await fetch("/api/gallery/files", {
-          method: isDelete ? "DELETE" : "PATCH",
+        const folder = operation.kind === "edit" && operation.folder;
+        response = await fetch(folder ? "/api/gallery/batch" : "/api/gallery/files", {
+          method: folder ? "POST" : isDelete ? "DELETE" : "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: operation.path, target: path, confirmReferences }),
+          body: JSON.stringify(folder
+            ? { action: "rename", paths: [operation.path], target: path, destination: "" }
+            : { path: operation.path, target: path, confirmReferences }),
         });
       }
       const result = await readResponse(response);
@@ -122,14 +133,14 @@ export function FileDialog({ operation, onClose, onComplete }: {
       onComplete();
     } catch (error) {
       setError(error instanceof Error ? error.message : "文件操作失败。");
-    } finally { setSaving(false); }
+    } finally { savingRef.current = false; setSaving(false); }
   }
 
   return (
-    <Dialog open onClose={() => { if (!saving) onClose(); }} fullWidth maxWidth="sm"
+    <Dialog open onClose={() => { if (!savingRef.current) onClose(); }} fullWidth maxWidth="sm"
       aria-labelledby="gallery-file-dialog-title">
       <DialogTitle id="gallery-file-dialog-title">
-        {isDelete ? "删除文件" : operation.kind === "upload" ? "上传图片" : "编辑文件"}
+        {isDelete ? "删除文件" : operation.kind === "upload" ? "上传图片" : operation.folder ? "重命名文件夹" : "编辑文件"}
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
@@ -151,7 +162,7 @@ export function FileDialog({ operation, onClose, onComplete }: {
             </>
           ) : (
             <>
-              <TextField autoFocus fullWidth label="Path" value={path} disabled={saving || initializing}
+              <TextField autoFocus fullWidth label="Path" value={path} disabled={saving || initializing || !!replacement}
                 onChange={event => {
                   setPath(event.target.value);
                   setInspectedPath("");
@@ -159,6 +170,36 @@ export function FileDialog({ operation, onClose, onComplete }: {
                   setError("");
                 }} />
               {createsFolder && <Alert severity="warning">将创建新文件夹。</Alert>}
+              {operation.kind === "edit" && !operation.folder && <>
+                <Button component="label" variant="outlined" startIcon={<Upload />}
+                  disabled={saving || initializing || path !== operation.path}>
+                  上传替换文件
+                  <input hidden type="file" accept={replacementAccept(operation.path)}
+                    disabled={saving || initializing || path !== operation.path} onChange={event => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (!file) return;
+                    setReplacement(null);
+                    if (assetKind(file.name) !== assetKind(operation.path)) {
+                      setError("只能上传与原文件同一大类的文件。");
+                    } else if (!file.size || file.size > 10 * 1024 * 1024) {
+                      setError("请选择不超过 10MB 的文件。");
+                    } else {
+                      setReplacement(file);
+                      setError("");
+                    }
+                  }} />
+                </Button>
+                {path !== operation.path && <Typography variant="caption" color="text.secondary">
+                  请先保存 Path 修改，再替换文件。
+                </Typography>}
+                {replacement && <>
+                  <Alert severity="info" sx={{ overflowWrap: "anywhere" }}>
+                    将使用 {replacement.name} 替换当前文件，保留原路径和名称，卡片及文章引用不变。
+                  </Alert>
+                  <Button disabled={saving} onClick={() => setReplacement(null)}>取消替换</Button>
+                </>}
+              </>}
             </>
           )}
           {error && <Alert severity="error">{error}</Alert>}
@@ -169,7 +210,7 @@ export function FileDialog({ operation, onClose, onComplete }: {
         <Button variant="contained" color={isDelete ? "error" : "primary"} onClick={() => void submit()}
           disabled={saving || initializing || (isDelete ? !usage : !path || inspectedPath !== path)}>
           {saving ? "正在处理…" : isDelete ? (hasReferences ? (confirmReferences ? "仍然删除" : "继续删除") : "确认删除")
-            : operation.kind === "upload" ? "确认上传" : "保存"}
+            : operation.kind === "upload" ? "确认上传" : replacement ? "确认替换" : "保存"}
         </Button>
       </DialogActions>
     </Dialog>

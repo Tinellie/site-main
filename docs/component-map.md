@@ -49,7 +49,7 @@
 
 `SocialLinkCard` 属性：`image?`（assets 内相对地址）、`iconName?`、`platform`、`socialId`、`href`。图片优先于图标；不提供图片与名称时使用 Language 图标。名称支持全部已安装 MUI 图标，通过 `/api/icons/[name]` 请求生成的 SVG，避免打包完整图标库。
 
-Connect 卡片固定高度为 140px，四周保留 8px 外边距。内容内边距与图文间距为 16px，头像为 56px。磨砂玻璃背景由 theme 的 `MuiCard` 统一提供：paper 底色 45% 不透明度、12px 背景模糊、140% 饱和度和细半透明边框，文字与图标不模糊；不支持 backdrop-filter 时使用 90% 不透明底色。Works、Blog、推荐和 Gallery 卡片自动复用同一定义。
+Connect 卡片固定高度为 140px，四周保留 8px 外边距。内容内边距与图文间距为 16px，图标及图片区域为 56px 方形，无圆形遮罩，图片按原比例完整显示。磨砂玻璃背景由 theme 的 `MuiCard` 统一提供：paper 底色 45% 不透明度、12px 背景模糊、140% 饱和度和细半透明边框，文字与图标不模糊；不支持 backdrop-filter 时使用 90% 不透明底色。Works、Blog、推荐和 Gallery 卡片自动复用同一定义。
 
 数据来自 `content_cards`。迁移一次性导入原示例，账号和地址不是网站主的真实资料。登录后启用 `EditableCard` 及右下角新增 FAB，通过 `CardEditor` 编辑；`IconPicker` 提供搜索和分页。图片上传与重命名规则见 README。
 
@@ -140,9 +140,13 @@ Recommended 中 `compact=true` 的 PostCard 固定高度为 88px；封面区域�
 
 ## Gallery
 
-`GalleryPage` 复用 `PageTemplate`、`CardRevealGroup`、`CardReveal`；文件卡片由 `EditableCard` 提供右上角的认证编辑／删除操作，文件夹没有管理按钮。工具栏的上传按钮仅登录后出现。`FileDialog` 按需加载，上传和移动只显示一个 Path 字段，检查新父目录并提示，删除则显示页面／文章引用和二次确认。成功后刷新服务端目录，保留当前搜索、排序和视图。
+`GalleryPage` 复用 `PageTemplate`、`CardRevealGroup`、`CardReveal`；文件卡片由 `EditableCard` 提供右上角的认证编辑／删除操作，文件夹（不含 `..`）提供重命名按钮。工具栏的上传和批量选取仅登录后出现。`FileDialog` 按需加载，上传和移动使用 Path 字段，文件编辑另支持同类替换；文件夹重命名保留父目录。删除显示页面／文章引用和二次确认。成功后刷新服务端目录，保留当前搜索、排序和视图。
 
 `/api/gallery/files` 负责认证检查路径／引用、上传、移动及删除；`file-manager` 共用文章和卡片的写锁，并协调 MySQL 事务、Markdown 历史和文件回滚。文章保存时更新 `article_image_references`；查询占用时扫描当前文章补录旧记录，使用语法解析器识别 Markdown 图片、引用定义及 HTML 图片。文件移动同时更新文章与卡片，删除引用中文件需要明确再次确认。
+
+`GalleryBatchControls` 管理当前标签页的剪贴板、右下角三点菜单及文件／文件夹两个独立冲突面板；`/api/gallery/batch` 处理目录重命名、批量复制、剪切及删除。`batch` 在共享写锁内先规划，再应用统一冲突策略；`reference-moves` 共用于单文件和递归移动，协调引用事务与文章补偿。文件系统操作保留逆向日志及临时备份，普通错误会回滚；进程中断需人工检查备份。
+
+`CardEditor` 用浏览器 Blob URL 预览本次选择的图片，路径编辑不替换此 URL，卸载或重新选择会释放它。保存通过 multipart 同时提交卡片与图片；`saveCard` 在写锁及数据库事务内创建最终文件，数据库失败时删除新文件。`createCardImage` 和 Gallery 路径建议共用 `availableAssetName`，仅重名时添加 `(1)` 编号。
 
 `/assets/*` 重写至 `/api/gallery/assets/[...path]`，按运行时磁盘内容公开读取文件，支持媒体流和 Range，避免生产构建后新增文件无法访问。路径不得越级或经过符号链接。`gallery-file-dialog-title` 是管理弹窗的无障碍标题。
 

@@ -5,6 +5,7 @@ import { authorizeWrite, requireEditor } from "@/lib/auth/session";
 import { AuthError, authFailure } from "@/lib/auth/http";
 import { readImageUploadForm } from "@/lib/images/upload-form";
 import { deleteManagedAsset, inspectManagedAsset, managedAssetUsage, moveManagedAsset, uploadManagedAsset } from "@/lib/gallery/file-manager";
+import { replaceManagedAsset } from "@/lib/gallery/file-replacement";
 
 function failure(error: unknown) {
   if (error instanceof AuthError) return authFailure(error);
@@ -33,6 +34,19 @@ export async function POST(request: Request) {
     const relative = await uploadManagedAsset(file, form.get("path"));
     revalidatePath("/gallery", "layout");
     return NextResponse.json({ path: relative }, { status: 201 });
+  } catch (error) { return failure(error); }
+}
+
+export async function PUT(request: Request) {
+  try { await authorizeWrite(request); } catch (error) { return authFailure(error); }
+  try {
+    const form = await readImageUploadForm(request, "文件");
+    const file = form.get("file");
+    if (!(file instanceof File)) throw new AuthError("请选择替换文件。", 400);
+    const relative = await replaceManagedAsset(file, form.get("path"));
+    revalidatePath("/gallery", "layout");
+    revalidatePath("/blog", "layout");
+    return NextResponse.json({ path: relative });
   } catch (error) { return failure(error); }
 }
 

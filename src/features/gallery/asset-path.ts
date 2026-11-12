@@ -4,6 +4,7 @@ export function parseAssetPath(value: unknown): string {
   try { decoded = decodeURIComponent(value); } catch { throw new Error("Path 编码无效。"); }
   const parts = decoded.split("/");
   if (parts.some(part => !part || part === "." || part === ".." ||
+    part.startsWith(".gallery-operation-") || part.startsWith(".asset-replace-") ||
     /[\\:%?#\u0000-\u001f:*?"<>|]/.test(part) || /[. ]$/.test(part) ||
     /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))) {
     throw new Error("Path 必须是 assets 内的相对文件路径。");

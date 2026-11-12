@@ -1,18 +1,10 @@
 import { createReadStream, promises as fs } from "node:fs";
-import path from "node:path";
 import { NextResponse } from "next/server";
 
 import { AuthError, authFailure } from "@/lib/auth/http";
 import { existingAssetPath, validatedAssetPath } from "@/lib/gallery/file-paths";
 import { SVG_CONTENT_SECURITY_POLICY } from "@/lib/images/svg";
-
-const types: Record<string, string> = {
-  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
-  ".webp": "image/webp", ".avif": "image/avif", ".bmp": "image/bmp",
-  ".svg": "image/svg+xml",
-  ".mp4": "video/mp4", ".webm": "video/webm", ".ogv": "video/ogg", ".mov": "video/quicktime",
-  ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg", ".m4a": "audio/mp4",
-};
+import { readAssetContentType } from "@/lib/gallery/file-content";
 
 function fileStream(file: string, start: number, end: number) {
   const source = createReadStream(file, { start, end });
@@ -38,7 +30,7 @@ export async function GET(request: Request, context: RouteContext<"/api/gallery/
     const relative = validatedAssetPath((await context.params).path.join("/"));
     const file = await existingAssetPath(relative);
     const { size } = await fs.stat(file);
-    const contentType = types[path.extname(relative).toLowerCase()] ?? "text/plain; charset=utf-8";
+    const contentType = await readAssetContentType(file, relative);
     const headers = {
       "Content-Type": contentType,
       "Cache-Control": "no-store",

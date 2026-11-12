@@ -55,9 +55,10 @@ export function SocialLinkCard({
           >
             <Avatar
               className="slc-icon"
+              variant="square"
               src={image ? resolveCardImagePath(image) : `/api/icons/${iconName || "Language"}`}
               alt={platform}
-              sx={{ width: 56, height: 56 }}
+              sx={{ width: 56, height: 56, "& .MuiAvatar-img": { objectFit: "contain" } }}
             >
               <Language fontSize="large" />
             </Avatar>

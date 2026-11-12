@@ -11,7 +11,7 @@ export function EditableCard({
   title: string;
   enabled: boolean;
   onEdit: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   onMove?: (direction: "up" | "down") => void;
   first?: boolean;
   last?: boolean;
@@ -50,12 +50,12 @@ export function EditableCard({
               </IconButton>
             </span></Tooltip>
           </>}
-          <Tooltip title="删除">
+          {onDelete && <Tooltip title="删除">
             <IconButton aria-label={`删除 ${title}`} size="small" onClick={onDelete} disabled={busy}
               sx={{ bgcolor: "background.paper", "&:hover": { bgcolor: "action.selected" } }}>
               <Delete fontSize="small" />
             </IconButton>
-          </Tooltip>
+          </Tooltip>}
         </Stack>
       )}
     </Box>

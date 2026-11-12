@@ -18,7 +18,7 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  Card, CardActionArea,
+  Card, CardActionArea, Checkbox,
   Dialog, DialogContent, DialogTitle,
   Link,
   MenuItem,
@@ -34,6 +34,7 @@ import type { AssetEntry, AssetKind } from "@/features/gallery/types";
 import { useAuth } from "@/features/auth/auth-provider";
 import { EditableCard } from "@/features/cards/editable-card";
 import type { FileOperation } from "./file-dialog";
+import { GalleryBatchControls } from "./batch-controls";
 
 const FileDialog = dynamic(() => import("./file-dialog").then(module => module.FileDialog));
 
@@ -91,6 +92,16 @@ export function GalleryPage({
   const [view, setView] = useState<"grid" | "list">("grid");
   const [selected, setSelected] = useState<AssetEntry | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [selecting, setSelecting] = useState(false);
+  const [selection, setSelection] = useState<{ directory: string; paths: string[] }>({ directory: "", paths: [] });
+  const directory = segments.join("/");
+  const selectedPaths = selection.directory === directory ? selection.paths : [];
+  function toggleSelection(relative: string) {
+    setSelection(previous => {
+      const paths = previous.directory === directory ? previous.paths : [];
+      return { directory, paths: paths.includes(relative) ? paths.filter(path => path !== relative) : [...paths, relative] };
+    });
+  }
   const visible = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     const collator = new Intl.Collator(undefined, { numeric: true });
@@ -156,6 +167,8 @@ export function GalleryPage({
             <ToggleButton value="list" aria-label="列表"><ViewListIcon /></ToggleButton>
           </ToggleButtonGroup>
         </Stack>
+        {user && <GalleryBatchControls directory={directory} selected={selectedPaths} selecting={selecting}
+          onSelecting={setSelecting} onComplete={() => setSelection({ directory, paths: [] })} />}
         <Typography variant="body2" color="text.secondary">{visible.length} 个项目 · 文件夹优先</Typography>
         {!visible.length && <Alert severity="info">{search ? "没有匹配的文件或文件夹。" : "此文件夹为空。"}</Alert>}
         <CardRevealGroup key={`${view}:${sort}:${displayed.map(entry => entry.url).join("|")}`}>
@@ -172,7 +185,7 @@ export function GalleryPage({
                 ...(view === "grid" ? { flex: 1, width: "100%", minHeight: 0 } : { width: 56, height: 56, flexShrink: 0 }),
               }}>
                 {entry.kind === "image" ? (
-                  <Image src={entry.url} alt={entry.name} fill loading="eager" unoptimized={/\.svg$/i.test(entry.name)}
+                  <Image src={`${entry.url}?v=${encodeURIComponent(entry.modifiedAt)}`} alt={entry.name} fill loading="eager" unoptimized
                     sizes={view === "list" ? "56px" : "(max-width: 416px) calc(100vw - 16px), 240px"}
                     style={{ objectFit: "cover" }} />
                 ) : <Icon sx={{ fontSize: view === "grid" ? 48 : 32 }} color="primary" />}
@@ -195,11 +208,19 @@ export function GalleryPage({
             } as const;
             const relativePath = [...segments, entry.name].join("/");
             return <CardReveal key={entry.url}><EditableCard title={entry.name}
-              enabled={!!user && entry.kind !== "folder"}
-              onEdit={() => setOperation({ kind: "edit", path: relativePath })}
-              onDelete={() => setOperation({ kind: "delete", path: relativePath })}><Card
-              sx={view === "grid" ? { aspectRatio: "1 / 1", minWidth: 0 } : { minWidth: 0 }}>
-              {entry.kind === "folder" ? (
+              enabled={!!user && entry.name !== ".." && !selecting}
+              onEdit={() => setOperation({ kind: "edit", path: relativePath, folder: entry.kind === "folder" })}
+              onDelete={entry.kind === "folder" ? undefined : () => setOperation({ kind: "delete", path: relativePath })}><Card
+              sx={{ position: "relative", outline: selectedPaths.includes(relativePath) ? "2px solid" : undefined,
+                outlineColor: "primary.main", ...(view === "grid" ? { aspectRatio: "1 / 1", minWidth: 0 } : { minWidth: 0 }) }}>
+              {user && selecting && entry.name !== ".." ? (
+                <CardActionArea onClick={() => toggleSelection(relativePath)} sx={sx}
+                  aria-label={`选取 ${entry.name}`} aria-pressed={selectedPaths.includes(relativePath)}>
+                  <Checkbox checked={selectedPaths.includes(relativePath)} tabIndex={-1}
+                    sx={{ position: "absolute", right: 4, top: 4, pointerEvents: "none", zIndex: 1 }} />
+                  {content}
+                </CardActionArea>
+              ) : entry.kind === "folder" ? (
                 <CardActionArea component={NextLink} href={entry.url} prefetch={false} sx={sx}>{content}</CardActionArea>
               ) : (
                 <CardActionArea onClick={() => {
