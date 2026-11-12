@@ -13,7 +13,7 @@ import { assetKind, replacementAccept } from "./asset-kind";
 
 export type FileOperation =
   | { kind: "upload"; file: File }
-  | { kind: "edit"; path: string }
+  | { kind: "edit"; path: string; folder?: boolean }
   | { kind: "delete"; path: string };
 
 interface FileResponse {
@@ -114,10 +114,13 @@ export function FileDialog({ operation, onClose, onComplete }: {
         form.set("path", operation.kind === "edit" ? operation.path : path);
         response = await fetch("/api/gallery/files", { method: operation.kind === "upload" ? "POST" : "PUT", body: form });
       } else {
-        response = await fetch("/api/gallery/files", {
-          method: isDelete ? "DELETE" : "PATCH",
+        const folder = operation.kind === "edit" && operation.folder;
+        response = await fetch(folder ? "/api/gallery/batch" : "/api/gallery/files", {
+          method: folder ? "POST" : isDelete ? "DELETE" : "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: operation.path, target: path, confirmReferences }),
+          body: JSON.stringify(folder
+            ? { action: "rename", paths: [operation.path], target: path, destination: "" }
+            : { path: operation.path, target: path, confirmReferences }),
         });
       }
       const result = await readResponse(response);
@@ -137,7 +140,7 @@ export function FileDialog({ operation, onClose, onComplete }: {
     <Dialog open onClose={() => { if (!savingRef.current) onClose(); }} fullWidth maxWidth="sm"
       aria-labelledby="gallery-file-dialog-title">
       <DialogTitle id="gallery-file-dialog-title">
-        {isDelete ? "删除文件" : operation.kind === "upload" ? "上传图片" : "编辑文件"}
+        {isDelete ? "删除文件" : operation.kind === "upload" ? "上传图片" : operation.folder ? "重命名文件夹" : "编辑文件"}
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
@@ -167,7 +170,7 @@ export function FileDialog({ operation, onClose, onComplete }: {
                   setError("");
                 }} />
               {createsFolder && <Alert severity="warning">将创建新文件夹。</Alert>}
-              {operation.kind === "edit" && <>
+              {operation.kind === "edit" && !operation.folder && <>
                 <Button component="label" variant="outlined" startIcon={<Upload />}
                   disabled={saving || initializing || path !== operation.path}>
                   上传替换文件

@@ -16,31 +16,49 @@ export async function listCards(section: CardSection) {
     .orderBy(asc(contentCards.position), asc(contentCards.id));
 }
 
-export async function saveCard(input: CardInput, id?: number) {
+export async function saveCard(draft: CardInput, id?: number, file?: File) {
   await requireEditor();
-  if (!(await hasMuiIcon(input.icon))) throw new AuthError("MUI 图标不存在。", 400);
-  return withContentWriteLock(() => getDb().transaction(async (db) => {
-    const cards = await db.select().from(contentCards).orderBy(asc(contentCards.id)).for("update");
-    if (input.categoryId !== null) {
-      const [category] = await db.select().from(connectCategories)
-        .where(eq(connectCategories.id, input.categoryId)).limit(1).for("update");
-      if (!category) throw new AuthError("分类不存在或已删除，请重新选择分类。", 400);
-    }
-    if (id !== undefined) {
-      const existing = cards.find(card => card.id === id);
-      if (!existing) throw new AuthError("卡片不存在或已删除。", 404);
-      if ((existing.kind === "connect") !== (input.kind === "connect")) {
-        throw new AuthError("不能将 Connect 卡片转换为 Works 卡片。", 400);
+  if (!(await hasMuiIcon(draft.icon))) throw new AuthError("MUI 图标不存在。", 400);
+  return withContentWriteLock(async () => {
+    let uploaded: { image: string; rollback: () => Promise<void> } | undefined;
+    try {
+      return await getDb().transaction(async (db) => {
+        const input = { ...draft };
+        const cards = await db.select().from(contentCards).orderBy(asc(contentCards.id)).for("update");
+        if (input.categoryId !== null) {
+          const [category] = await db.select().from(connectCategories)
+            .where(eq(connectCategories.id, input.categoryId)).limit(1).for("update");
+          if (!category) throw new AuthError("分类不存在或已删除，请重新选择分类。", 400);
+        }
+        const existing = id === undefined ? undefined : cards.find(card => card.id === id);
+        if (id !== undefined && !existing) throw new AuthError("卡片不存在或已删除。", 404);
+        if (existing && (existing.kind === "connect") !== (input.kind === "connect")) {
+          throw new AuthError("不能将 Connect 卡片转换为 Works 卡片。", 400);
+        }
+        const position = existing && existing.kind === input.kind && existing.categoryId === input.categoryId
+          ? existing.position : Math.max(0, ...cards.map(card => card.position)) + 1;
+        if (file) {
+          const { createCardImage } = await import("@/lib/cards/assets");
+          uploaded = await createCardImage(file, input.image);
+          input.image = uploaded.image;
+        }
+        if (id !== undefined) {
+          await db.update(contentCards).set({ ...input, position }).where(eq(contentCards.id, id));
+          return { ...input, id, position };
+        }
+        const [created] = await db.insert(contentCards).values({ ...input, position }).$returningId();
+        return { ...input, id: created.id, position };
+      });
+    } catch (error) {
+      if (uploaded) {
+        try { await uploaded.rollback(); } catch (rollbackError) {
+          console.error("Card image rollback failed:", rollbackError);
+          throw new Error("卡片保存失败且图片清理失败，请检查服务器文件。", { cause: error });
+        }
       }
-      const position = existing.kind === input.kind && existing.categoryId === input.categoryId
-        ? existing.position : Math.max(0, ...cards.map(card => card.position)) + 1;
-      await db.update(contentCards).set({ ...input, position }).where(eq(contentCards.id, id));
-      return { ...input, id, position };
+      throw error;
     }
-    const position = Math.max(0, ...cards.map(card => card.position)) + 1;
-    const [created] = await db.insert(contentCards).values({ ...input, position }).$returningId();
-    return { ...input, id: created.id, position };
-  }));
+  });
 }
 
 export async function deleteCard(id: number) {

@@ -4,6 +4,7 @@ import { authorizeWrite } from "@/lib/auth/session";
 import { authFailure, AuthError } from "@/lib/auth/http";
 import { deleteCard, moveCard, saveCard } from "@/lib/cards/store";
 import { CardInputError, parseCardInput, parseCardMove } from "@/features/cards/validation";
+import { readCardSubmission } from "@/lib/cards/submission";
 
 async function mutate(request: Request, context: RouteContext<"/api/cards/[id]">, remove: boolean) {
   try { await authorizeWrite(request); } catch (error) { return authFailure(error); }
@@ -16,12 +17,12 @@ async function mutate(request: Request, context: RouteContext<"/api/cards/[id]">
       await deleteCard(Number(rawId));
       return NextResponse.json({ deleted: true });
     }
-    let payload: unknown;
-    try { payload = await request.json(); } catch { throw new CardInputError("请求体不是有效 JSON。"); }
+    const { payload, file } = await readCardSubmission(request);
     if (payload && typeof payload === "object" && "direction" in payload) {
+      if (file) throw new CardInputError("移动卡片不接受上传文件。");
       return NextResponse.json({ cards: await moveCard(Number(rawId), parseCardMove(payload)) });
     }
-    return NextResponse.json({ card: await saveCard(parseCardInput(payload), Number(rawId)) });
+    return NextResponse.json({ card: await saveCard(parseCardInput(payload), Number(rawId), file) });
   } catch (error) {
     if (error instanceof CardInputError) return NextResponse.json({ message: error.message }, { status: 400 });
     if (error instanceof AuthError) return authFailure(error);

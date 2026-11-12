@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle,
   MenuItem, Stack, TextField,
@@ -11,6 +11,7 @@ import { IconPicker } from "@/features/cards/icon-picker";
 import type { CardInput, CardSection, ConnectCategory, ContentCard } from "@/features/cards/types";
 import { parseCardInput, parseCategoryName } from "@/features/cards/validation";
 import { resolveCardImagePath } from "@/features/cards/image-path";
+import { parseAssetPath } from "@/features/gallery/asset-path";
 
 export function CardEditor({
   card, section, categories, onClose, onSaved, onCategorySaved,
@@ -32,29 +33,28 @@ export function CardEditor({
   const busyRef = useRef(false);
   const [error, setError] = useState("");
   const [picker, setPicker] = useState(false);
-  const [uploadedPath, setUploadedPath] = useState("");
+  const [pendingImage, setPendingImage] = useState<{ file: File; url: string } | null>(null);
   const [previewError, setPreviewError] = useState("");
+  useEffect(() => () => { if (pendingImage) URL.revokeObjectURL(pendingImage.url); }, [pendingImage]);
 
   function update<K extends keyof CardInput>(key: K, value: CardInput[K]) {
     setDraft(previous => ({ ...previous, [key]: value }));
   }
 
-  async function upload(file: File) {
+  function upload(file: File) {
     if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
     setError("");
     try {
-      const form = new FormData();
-      form.set("file", file);
-      const result = await cardRequest<{ image: string }>("/api/cards/assets", { method: "POST", body: form });
-      setUploadedPath(result.image);
-      update("image", result.image);
-      setPreview(resolveCardImagePath(result.image));
+      if (!file.type.startsWith("image/") || !/\.(png|jpe?g|gif|webp|avif|svg)$/i.test(file.name) ||
+        !file.size || file.size > 10 * 1024 * 1024) throw new Error("请选择不超过 10MB 的受支持图片。");
+      const name = parseAssetPath(file.name);
+      const url = URL.createObjectURL(file);
+      setPendingImage({ file, url });
+      update("image", name);
       setPreviewError("");
     } catch (error) {
-      setError(error instanceof Error ? error.message : "上传失败。");
-    } finally { busyRef.current = false; setBusy(false); }
+      setError(error instanceof Error ? error.message : "图片暂存失败。");
+    }
   }
 
   async function save(event: FormEvent) {
@@ -73,19 +73,15 @@ export function CardEditor({
         return;
       }
       const input = parseCardInput(draft);
-      if (uploadedPath && input.image && input.image !== uploadedPath) {
-        const moved = await cardRequest<{ image: string }>("/api/cards/assets", {
-          method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source: uploadedPath, target: input.image }),
-        });
-        input.image = moved.image;
-        setUploadedPath(moved.image);
-        update("image", moved.image);
-        setPreview(resolveCardImagePath(moved.image));
+      let form: FormData | undefined;
+      if (pendingImage) {
+        form = new FormData();
+        form.set("file", pendingImage.file);
+        form.set("card", JSON.stringify(input));
       }
       const result = await cardRequest<{ card: ContentCard }>(card ? `/api/cards/${card.id}` : "/api/cards", {
-        method: card ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
+        method: card ? "PATCH" : "POST", headers: form ? undefined : { "Content-Type": "application/json" },
+        body: form ?? JSON.stringify(input),
       });
       onSaved(result.card);
     } catch (error) {
@@ -172,8 +168,8 @@ export function CardEditor({
                   )}
                   <TextField
                     label="Image" value={draft.image}
-                    onChange={event => { update("image", event.target.value); setPreview(""); }}
-                    onBlur={() => setPreview(previewImage())}
+                    onChange={event => { update("image", event.target.value); if (!pendingImage) setPreview(""); }}
+                    onBlur={() => { if (!pendingImage) setPreview(previewImage()); }}
                     helperText={`assets 下的相对路径，例如 folder/image.png${section === "connect" ? "；设置后覆盖 Icon" : ""}。`}
                   />
                   <Button component="label" variant="outlined">
@@ -185,16 +181,18 @@ export function CardEditor({
                         if (file) void upload(file);
                       }} />
                   </Button>
-                  {uploadedPath && (
+                  {pendingImage && (
                     <Alert severity="info">
-                      已上传：{uploadedPath}。修改 Image 路径后保存，会移动或重命名本次上传图片，不覆盖已有文件。
-                      取消编辑或删除卡片不会删除图片。
+                      图片暂存于浏览器，修改 Image 路径不影响预览。保存卡片时才上传至指定位置，
+                      同名文件自动添加 (1)、(2)… 编号；取消编辑不会上传。
+                      <Button size="small" onClick={() => { setPendingImage(null); update("image", card?.image ?? "");
+                        setPreview(card?.image ? resolveCardImagePath(card.image) : ""); }}>取消本次上传</Button>
                     </Alert>
                   )}
-                  {draft.image && (
+                  {(draft.image || pendingImage) && (
                     <Box sx={{ height: 180, display: "grid", placeItems: "center", overflow: "auto" }}>
                       {previewError && <Alert severity="warning">{previewError}</Alert>}
-                      {preview && <Box component="img" src={preview} alt="图片预览"
+                      {(pendingImage?.url || preview) && <Box component="img" src={pendingImage?.url || preview} alt="图片预览"
                         onError={() => setPreviewError("图片无法加载，请检查路径。")}
                         sx={{ maxHeight: 180, maxWidth: "100%", objectFit: "contain" }} />}
                     </Box>

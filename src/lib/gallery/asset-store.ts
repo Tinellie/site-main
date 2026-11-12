@@ -16,6 +16,7 @@ function missing(error: unknown): boolean {
 export async function listAssets(segments: string[]): Promise<AssetEntry[] | null> {
   if (segments.some(segment =>
     !segment || segment === "." || segment === ".." ||
+    segment.startsWith(".gallery-operation-") || segment.startsWith(".asset-replace-") ||
     /[\\/\u0000-\u001f:]/.test(segment)
   )) return null;
 
@@ -30,7 +31,8 @@ export async function listAssets(segments: string[]): Promise<AssetEntry[] | nul
     }
     const entries = await fs.readdir(/* turbopackIgnore: true */ directory, { withFileTypes: true });
     return await Promise.all(entries
-      .filter(entry => !entry.name.startsWith(".asset-replace-") && (entry.isDirectory() || entry.isFile()))
+      .filter(entry => !entry.name.startsWith(".asset-replace-") && !entry.name.startsWith(".gallery-operation-") &&
+        (entry.isDirectory() || entry.isFile()))
       .map(async entry => {
         const stat = await fs.lstat(path.join(/* turbopackIgnore: true */ directory, entry.name));
         const parts = [...segments, entry.name].map(encodeURIComponent).join("/");

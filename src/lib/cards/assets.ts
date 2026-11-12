@@ -1,6 +1,5 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -9,6 +8,9 @@ import { AuthError } from "@/lib/auth/http";
 import { resolveImagePath } from "@/lib/images/resolve-image-path";
 import { validateSvg } from "@/lib/images/svg";
 import { readAssetContentType } from "@/lib/gallery/file-content";
+import { availableAssetName } from "@/lib/gallery/available-name";
+import { inspectAssetPath, validatedAssetPath } from "@/lib/gallery/file-paths";
+import { withContentWriteLock } from "@/lib/content-write-lock";
 
 const root = path.join(process.cwd(), "public", "assets");
 export const MAX_CARD_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -21,7 +23,7 @@ function relativePath(value: string) {
   if (value.startsWith("@images/") || !extensions.has(path.extname(value).toLowerCase())) {
     throw new AuthError("图片仅支持 PNG、JPEG、GIF、WebP、AVIF、SVG。", 400);
   }
-  return decodeURIComponent(value);
+  return validatedAssetPath(value);
 }
 
 async function safePath(relative: string, createParents: boolean) {
@@ -52,13 +54,36 @@ export async function readCardImage(image: string) {
 
 export async function uploadCardImage(file: File) {
   await requireEditor();
+  return withContentWriteLock(async () => (await createCardImage(file, file.name)).image);
+}
+
+// Called while holding the content lock. Keep rollback available until the card transaction commits.
+export async function createCardImage(file: File, requested: string) {
   const bytes = await validateImageUpload(file);
   const extension = path.extname(file.name).toLowerCase();
-  const name = path.basename(file.name, path.extname(file.name)).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 120) || "image";
-  const image = relativePath(`${name}-${randomUUID()}${extension}`);
-  const destination = await safePath(image, true);
-  await fs.writeFile(destination, bytes, { flag: "wx" });
-  return image;
+  const desired = relativePath(requested);
+  if (path.extname(desired).toLowerCase() !== extension) throw new AuthError("图片路径必须保留上传文件的扩展名。", 400);
+  for (;;) {
+    const image = await availableAssetName(desired, async name => (await inspectAssetPath(name, false, true)).exists);
+    const destination = (await inspectAssetPath(image, true)).absolute;
+    let handle;
+    try { handle = await fs.open(destination, "wx"); }
+    catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "EEXIST") continue;
+      throw error;
+    }
+    try {
+      try { await handle.writeFile(bytes); } finally { await handle.close(); }
+    } catch (error) {
+      try { await fs.unlink(destination); }
+      catch (cleanupError) {
+        console.error("Failed to clean up incomplete card image:", cleanupError);
+        throw new Error("图片写入失败且清理失败，请检查服务器文件。", { cause: error });
+      }
+      throw error;
+    }
+    return { image, rollback: () => fs.unlink(destination) };
+  }
 }
 
 export async function validateImageUpload(file: File) {
