@@ -25,6 +25,14 @@ const { resolveImagePath } = await load("../src/lib/images/resolve-image-path.ts
 class AuthError extends Error {
   constructor(message, status) { super(message); this.status = status; }
 }
+const assetKinds = await load("../src/features/gallery/asset-kind.ts");
+const contentModule = await load("../src/lib/gallery/file-content.ts", {
+  "server-only": {},
+  "file-type": await import("file-type"),
+  "@/features/gallery/asset-kind": assetKinds,
+  "@/lib/auth/http": { AuthError },
+  "@/lib/images/svg": svgModule,
+});
 const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><style>rect{fill:red}</style><rect width="32" height="32"/></svg>';
 
 test("SVG upload persists unchanged, reads with SVG MIME and serves with sandbox headers", async t => {
@@ -39,6 +47,7 @@ test("SVG upload persists unchanged, reads with SVG MIME and serves with sandbox
     "@/lib/auth/http": { AuthError },
     "@/lib/images/resolve-image-path": { resolveImagePath },
     "@/lib/images/svg": svgModule,
+    "@/lib/gallery/file-content": contentModule,
   }, { process: { cwd: () => root } });
   const file = new File([svg], "logo.SVG", { type: "image/svg+xml" });
   const image = await assets.uploadCardImage(file);
@@ -53,6 +62,7 @@ test("SVG upload persists unchanged, reads with SVG MIME and serves with sandbox
     "@/lib/auth/http": { AuthError, authFailure: error => Response.json({ message: error.message }, { status: error.status }) },
     "@/lib/cards/assets": assets,
     "@/lib/images/svg": svgModule,
+    "@/lib/gallery/file-content": contentModule,
   });
   const response = await route.GET(new Request("http://localhost/test"), { params: Promise.resolve({ path: [image] }) });
   assert.equal(response.status, 200);
@@ -71,6 +81,7 @@ test("shared upload validation rejects spoofed or active SVG and keeps raster va
     "@/lib/auth/http": { AuthError },
     "@/lib/images/resolve-image-path": { resolveImagePath },
     "@/lib/images/svg": svgModule,
+    "@/lib/gallery/file-content": contentModule,
   });
   for (const [body, name, type] of [
     ["<html/>", "bad.svg", "image/svg+xml"],

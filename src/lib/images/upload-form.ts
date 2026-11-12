@@ -3,11 +3,11 @@ import "server-only";
 import { AuthError } from "@/lib/auth/http";
 import { MAX_CARD_IMAGE_BYTES } from "@/lib/cards/assets";
 
-export async function readImageUploadForm(request: Request) {
+export async function readImageUploadForm(request: Request, label = "图片") {
   const limit = MAX_CARD_IMAGE_BYTES + 65536;
-  if (Number(request.headers.get("content-length")) > limit) throw new AuthError("图片请求过大。", 413);
+  if (Number(request.headers.get("content-length")) > limit) throw new AuthError(`${label}请求过大。`, 413);
   const reader = request.body?.getReader();
-  if (!reader) throw new AuthError("请选择图片。", 400);
+  if (!reader) throw new AuthError(`请选择${label}。`, 400);
   const chunks: Uint8Array[] = [];
   let length = 0;
   try {
@@ -17,7 +17,7 @@ export async function readImageUploadForm(request: Request) {
       length += value.byteLength;
       if (length > limit) {
         await reader.cancel();
-        throw new AuthError("图片请求过大。", 413);
+        throw new AuthError(`${label}请求过大。`, 413);
       }
       chunks.push(value);
     }

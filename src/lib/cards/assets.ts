@@ -8,15 +8,11 @@ import { requireEditor } from "@/lib/auth/session";
 import { AuthError } from "@/lib/auth/http";
 import { resolveImagePath } from "@/lib/images/resolve-image-path";
 import { validateSvg } from "@/lib/images/svg";
+import { readAssetContentType } from "@/lib/gallery/file-content";
 
 const root = path.join(process.cwd(), "public", "assets");
 export const MAX_CARD_IMAGE_BYTES = 10 * 1024 * 1024;
 const extensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg"]);
-const contentTypes: Record<string, string> = {
-  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-  ".gif": "image/gif", ".webp": "image/webp", ".avif": "image/avif",
-  ".svg": "image/svg+xml",
-};
 
 function relativePath(value: string) {
   try { resolveImagePath(value); } catch {
@@ -51,7 +47,7 @@ export async function readCardImage(image: string) {
   const source = await safePath(relative, false);
   const stat = await fs.lstat(source);
   if (!stat.isFile() || stat.isSymbolicLink()) throw new AuthError("图片不是普通文件。", 400);
-  return { bytes: await fs.readFile(source), contentType: contentTypes[path.extname(relative).toLowerCase()] };
+  return { bytes: await fs.readFile(source), contentType: await readAssetContentType(source, relative) };
 }
 
 export async function uploadCardImage(file: File) {

@@ -172,7 +172,7 @@ export function GalleryPage({
                 ...(view === "grid" ? { flex: 1, width: "100%", minHeight: 0 } : { width: 56, height: 56, flexShrink: 0 }),
               }}>
                 {entry.kind === "image" ? (
-                  <Image src={entry.url} alt={entry.name} fill loading="eager" unoptimized={/\.svg$/i.test(entry.name)}
+                  <Image src={`${entry.url}?v=${encodeURIComponent(entry.modifiedAt)}`} alt={entry.name} fill loading="eager" unoptimized
                     sizes={view === "list" ? "56px" : "(max-width: 416px) calc(100vw - 16px), 240px"}
                     style={{ objectFit: "cover" }} />
                 ) : <Icon sx={{ fontSize: view === "grid" ? 48 : 32 }} color="primary" />}
