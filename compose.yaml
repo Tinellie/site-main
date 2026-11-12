@@ -15,8 +15,6 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: "3000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     expose:
       - "3000"
     volumes:
@@ -27,6 +25,7 @@ services:
       gateway:
         aliases:
           - site-main-web
+      database: {}
     healthcheck:
       test:
         - CMD
@@ -50,18 +49,19 @@ services:
       - .env.production
     environment:
       NODE_ENV: production
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./data/blog:/app/content/blog
       - ./data/assets:/app/public/assets
     networks:
-      - gateway
+      - database
 
 networks:
   gateway:
     external: true
     name: gateway
+  database:
+    external: true
+    name: vultr_default
 
 volumes:
   next_cache:

@@ -1,14 +1,22 @@
-# 部署
+# 部署到 suzutsuki.com
 
-以下命令在 Linux 服务器执行，每步成功后再继续。
+命令在 **Linux 服务器**执行，不是在 Windows PowerShell 执行。除域名外，服务器 IP、MySQL 密码、Docker 子网等必须使用服务器实际值。
 
-架构：现有 Caddy → 网站容器 → 宿主机 MySQL。不新建数据库或网关容器。
+架构：现有 gateway 项目的 Caddy → `site-main-web:3000` → 单实例 Next.js；通过现有 `vultr_default` 网络复用 **`vultr-db-1` MySQL 容器**，不新增 MySQL 或 Caddy 容器。本仓库的 Compose 不发布任何宿主机端口。app 加入 gateway 和数据库网络；tools 只加入数据库网络，MySQL 不加入 gateway。
 
-## 1. 准备
+## 1. 准备两个仓库的修改
 
-- 安装 Docker Engine 和 Compose v2，域名 `suzutsuki.com` 指向服务器，开放 TCP 80/443。
-- 先推送 site-main；等网站健康后再推送 gateway，后者会自动部署。
-- MySQL 使用独立数据库和账号，允许实际 Docker 子网连接，并监听容器可达的宿主机地址；不要开放公网 3306。
+- 先提交并上传 site-main：Dockerfile、Compose、环境变量模板、部署脚本及相关代码。
+- gateway 新增 `suzutsuki.com` → `site-main-web:3000` 的路由也需要提交上传，但建议等第 7 步应用健康后再推送：现有 gateway Actions 会在 main/master 推送后自动上线，过早推送会在应用尚未启动时让根域名暂时返回网关错误。
+- 不提交真实环境变量、数据库备份、文章或上传图片。
+
+服务器需要 Docker Engine 和 Docker Compose v2；域名 A 记录指向服务器。若有 AAAA，必须同样正确。开放 TCP 80/443；已有网关继续使用原证书卷，不启动第二个网关。
+
+## 2. 拉取代码并填写环境变量
+
+假定项目位于 `/opt/site-main`；现有 gateway Actions 使用 `/opt/site-gateway`，本文沿用该网关路径。若服务器实际位置不同，先核对，不要另建一份网关。
+
+首次：
 
 ```bash
 git clone git@github.com:Tinellie/site-main.git /opt/site-main
@@ -18,86 +26,229 @@ chmod 600 .env.production
 nano .env.production
 ```
 
-已有仓库不要重复克隆。填写真实账号、密码和库名：
+仓库已存在时，确认没有未保存修改，再拉取更新，不重复 clone 或覆盖环境文件。
 
 ```dotenv
 AUTH_ORIGIN=https://suzutsuki.com
-DATABASE_URL=mysql://site_main:YOUR_PASSWORD@host.docker.internal:3306/site_main
+DATABASE_URL=mysql://site_main:URL编码后的密码@vultr-db-1:3306/site_main
 ```
 
-密码中的特殊字符需 URL 编码；容器连接宿主机不能使用 `localhost`。不要提交真实环境文件。
+- `AUTH_ORIGIN` 没有尾部 `/`，不是 HTTP 或带 `www` 的其他来源。
+- `vultr-db-1` 是现有数据库容器在 `vultr_default` 中的 DNS 名称，不使用 `host.docker.internal`、`localhost` 或固定容器 IP。现有部署若改变容器名称，需同步更新该值。
+- URL 中密码的 `@ : / # ? %` 等保留字符需要百分号编码；MySQL 实际密码仍是原密码。
+- 不把真实密码发到聊天、写进 Dockerfile 或构建参数。验证 Compose 时用 `config --quiet`，避免输出完整秘密。
 
-## 2. 网络与构建
+## 3. 检查共享网络并构建
 
 ```bash
 docker network inspect gateway
+docker network inspect vultr_default
+docker inspect vultr-db-1 --format '{{json .NetworkSettings.Networks}}'
 ```
 
-仅当共享网络不存在时执行 `docker network create gateway`。查询实际子网供 MySQL 授权使用：
+仅当网络不存在，且确认现有网关确实使用该名称时，执行：
 
 ```bash
-docker network inspect gateway --format '{{json .IPAM.Config}}'
+docker network create gateway
+```
+
+`vultr_default` 必须是现有数据库所属网络，不要创建同名空网络来掩盖数据库部署缺失。数据库容器应处于运行／健康状态。然后：
+
+```bash
+cd /opt/site-main
 docker compose --profile tools config --quiet
 docker compose --profile tools build app tools
 ```
 
-## 3. 数据与初始化
+构建使用 Linux Node.js 24，不复制 Windows 依赖、环境文件、文章和上传目录。`tools` 是手动调用的一次性工具镜像，不是常驻服务。安装依赖需要访问 npm；Vditor 在浏览器中仍需其 CDN 资源。
+
+## 4. 核对现有 MySQL 的数据库和授权
+
+查询数据库网络的**实际**网段：
 
 ```bash
+docker network inspect vultr_default --format '{{json .IPAM.Config}}'
+docker exec -it vultr-db-1 mysql -uroot -p
+```
+
+第二条命令交互输入现有 MySQL 管理员密码，不将密码拼进命令。若使用其他管理员账号，替换 `root`；不修改现有数据库容器或其他站点的账号。
+
+在该 MySQL 实例中：
+
+1. 为本站创建独立数据库和应用用户，不使用 root 或其他站点的库。
+2. 允许该用户从 `vultr_default` 实际 Docker IPv4 子网连接，而不只允许 `localhost`。已确认当前网段为 `172.18.0.0/16`，不是 gateway 的 `172.19.0.0/16`。
+3. 不新增宿主机 MySQL 服务、不发布数据库 3306 端口、不执行 `ufw allow 3306`；连接走容器共享内网。
+
+例如，**仅当实际子网为 `172.18.0.0/16` 时**，可以在 MySQL 管理终端执行以下 SQL。替换密码；其他子网必须同步替换主机范围：
+
+```sql
+CREATE DATABASE site_main CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'site_main'@'172.18.0.0/255.255.0.0'
+  IDENTIFIED BY 'REPLACE_WITH_NEW_PASSWORD';
+GRANT ALL PRIVILEGES ON site_main.*
+  TO 'site_main'@'172.18.0.0/255.255.0.0';
+```
+
+权限只限本站数据库，用于应用和一次性迁移，不授予全局权限。本站库已存在时不重新创建或清空，只核对用户和授权。
+
+若旧版配置出现 `ETIMEDOUT`，更新 Compose 网络配置，并将服务器已有 `.env.production` 中的主机改为 `vultr-db-1`；更新模板不会自动修改已有环境文件。无需重建镜像，新的 tools 容器会使用更新后的网络和环境。不要用临时 `docker network connect` 代替持久化 Compose 配置。
+
+执行只读连接检查，成功后再迁移：
+
+```bash
+docker compose --profile tools run --rm --no-deps tools node -e '
+const mysql = require("mysql2/promise");
+(async () => {
+  const c = await mysql.createConnection(process.env.DATABASE_URL);
+  try { await c.query("SELECT 1"); console.log("MySQL OK"); }
+  finally { await c.end(); }
+})().catch(e => { console.error(e.code || e.name); process.exitCode = 1; });
+'
+```
+
+## 5. 导入现有数据并准备权限
+
+**GitHub 中的代码不是完整网站备份。** [忽略规则](../.gitignore) 会忽略新产生的文章和上传图片；已经跟踪的图片仍可能在 Git 中，但不能因此省略数据迁移。镜像除默认图标外不会包含这些运行时数据。
+
+```bash
+cd /opt/site-main
 mkdir -p data/blog data/assets backups
+```
+
+迁移本机网站时：
+
+- 暂停原站编辑，完整导出原 MySQL 数据库，包含迁移记录。
+- 将本机 `content/blog/` 下的**全部内容**上传至服务器 `data/blog/`，包括 `history/`。
+- 将本机 `public/assets/` 下的**全部内容**上传至服务器 `data/assets/`，保留文件名和目录结构。
+- 通过现有 MySQL 容器的管理账号，将备份导入本站目标库；核实 SQL 中的 `USE` 等语句不会写入其他站点。
+- 已有线上数据时先备份，不用空目录或开发数据库直接覆盖。
+
+即使部分图片已经在 Git 中，也要放入 `data/assets` 才会被运行中的应用看到。可先把服务器仓库里已跟踪的图片补入空缺位置，再合并本机未跟踪的上传文件（不会覆盖已有同名文件）：
+
+```bash
 cp -an public/assets/. data/assets/
 ```
 
-迁移原站时，先备份，再导入原 MySQL 数据库（包含迁移记录），并复制：
-
-- 原 `content/blog/` 全部内容（含 `history/`）→ `data/blog/`。
-- 原 `public/assets/` 全部内容 → `data/assets/`。
-
-不要用开发数据覆盖已有线上数据。导入后执行：
+导入完成后：
 
 ```bash
 docker compose --profile tools run --rm --no-deps --user 0:0 tools \
   node scripts/prepare-storage.mjs
+```
+
+命令只处理挂载的文章和上传目录：创建历史目录、补入缺少的默认图标，不覆盖现有同名文件；归属改为应用 UID/GID 1000，目录 750、文件 640，拒绝符号链接。不要使用 `chmod -R 777`。重新导入文件后，在 app 停止时再次执行。
+
+## 6. 迁移数据库；必要时创建管理员
+
+```bash
 docker compose --profile tools run --rm --no-deps tools npm run db:migrate
 ```
 
-尚无管理员时执行，已有账号则跳过：
+迁移成功后再启动应用。服务器运行**已有迁移**，不使用 `db:generate` 代替，不修改历史迁移文件。
+
+全新网站尚无账号时：
 
 ```bash
 docker compose --profile tools run --rm --no-deps tools npm run auth:admin -- admin
 ```
 
-## 4. 启动
+保留交互终端，按提示输入两遍密码。已导入原账号时跳过；有意重设密码并撤销会话时才追加 `--reset`。
+
+## 7. 启动并检查应用
 
 ```bash
 docker compose up -d --wait --wait-timeout 120 app
 docker compose ps
 docker compose logs --tail=100 app
+docker compose exec app node -e "fetch('http://127.0.0.1:3000/api/health').then(async r=>{console.log(r.status,await r.text());if(!r.ok)process.exit(1)}).catch(e=>{console.error(e);process.exit(1)})"
 ```
 
-健康检查失败时先查看日志，检查数据库连接和目录权限，不继续切换网关。
+`/api/health` 成功时返回 `200 {"status":"ok"}`，实际检查数据库连接、文章／历史／图片／缓存目录权限和图标文件；失败返回 503，并在日志记录原因。它不替代表结构迁移。失败时不要继续网关切换。
 
-## 5. 接入网关
+常见原因：
 
-推送 gateway 改动，等待现有 Actions 成功。它会在 `/opt/site-gateway` 更新 Caddy；无需重复手动部署。
+- `ENOTFOUND`：数据库容器名错误、容器未运行，或 app/tools 未加入 `vultr_default`。
+- `ECONNREFUSED`：数据库尚未就绪，或端口有误。
+- 连接超时：目标地址错误或容器网络被阻断；旧配置连接 `host.docker.internal:3306` 时按第 4 步修正。
+- `Access denied`：密码、URL 编码、数据库名或用户来源网段不正确。
+- 文件权限错误：导入后未执行目录准备，或绑定了错误目录。
+
+不暴露公网 3000/3306，不使用 `network_mode: host`，不将数据库加入 gateway。数据库网络是共享可信网络；本站只使用自己的库和专用账号。
+
+## 8. 更新并重载 gateway
+
+现有 gateway Actions 监听 main/master 推送，会在 `/opt/site-gateway` 自动拉取、校验配置并重建 Caddy。应用健康后，提交并推送 gateway 改动，等待该工作流成功；成功时可以跳过下列手动步骤，直接进入第 9 步。
+
+若自动部署未启用或需要手动应用，确保 DNS 正确、gateway 仓库已上传本次路由，再执行：
+
+```bash
+cd /opt/site-gateway
+git pull --ff-only
+docker compose run --rm --no-deps caddy \
+  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+```
+
+该一次性校验容器读取当前宿主机文件，避免 git 替换文件后，原容器仍挂着旧 inode 而误校验旧配置。校验成功后，仅重新创建 Caddy：
+
+```bash
+docker compose up -d --force-recreate caddy
+docker compose logs --tail=100 caddy
+```
+
+这会短暂重启网关，但不删除证书卷或重启其他应用容器。以后若确认是原文件内写入、绑定内容已更新，可以使用 gateway 的校验及 reload 流程避免重启。
+
+新增路由：
+
+```caddyfile
+suzutsuki.com {
+    encode gzip zstd
+    reverse_proxy site-main-web:3000
+}
+```
+
+不新增 `www` 路由、不改动其他站点。包括 `/assets/*` 的所有路径均转发给 Next.js，不能另加静态目录绕过应用。Cloudflare 若启用代理，使用 Full (strict)，不要使用 Flexible。
+
+## 9. 验收
 
 ```bash
 curl -fsS https://suzutsuki.com/api/health
+curl -I https://suzutsuki.com
 ```
 
-应返回 `{"status":"ok"}`。再检查登录、文章、卡片及图片上传，重启网站后确认文件仍存在。
+检查原有文章、卡片、分类、图片，然后测试登录／退出、保存文章、Gallery 上传／移动／删除与引用警告。新建一张测试图片，重启 app 后确认仍存在，再删除测试图片。
 
-## 6. 后续更新
+Blog 列表已改为请求时读取文章，镜像构建时没有文章也不会生成永久空列表；文章和图片不进入镜像。保持**一个 app 实例**，不要配置多副本或 PM2 cluster。
 
-暂停写入，将 MySQL、`data/blog`、`data/assets` 成套备份到其他机器，并安全保存环境配置，再执行：
+## 10. 更新、备份与回退
+
+每次更新前先备份，数据库和文件必须成套保存。以下命令使用现有 MySQL 容器的管理账号，交互输入密码，不将密码拼进命令：
 
 ```bash
 cd /opt/site-main
 docker compose stop app
+umask 077
+STAMP=$(date +%Y%m%d-%H%M%S)
+docker exec -it vultr-db-1 sh -c "umask 077; exec mysqldump -uroot -p --single-transaction --routines --triggers --result-file=/tmp/site-main-$STAMP.sql site_main"
+docker cp "vultr-db-1:/tmp/site-main-$STAMP.sql" "backups/database-$STAMP.sql"
+sudo tar -czf - data/blog data/assets > "backups/files-$STAMP.tar.gz"
+chmod 600 "backups/database-$STAMP.sql" "backups/files-$STAMP.tar.gz"
+docker exec vultr-db-1 rm "/tmp/site-main-$STAMP.sql"
+```
+
+逐条执行。任一备份失败就停止更新，不能把空 SQL 当作备份；保留失败日志，按需重新启动旧应用。将成功的备份加密复制到其他机器，定期验证恢复。
+
+先为旧镜像留标签，再更新：
+
+```bash
+docker image tag site-main:local "site-main:rollback-$STAMP"
 git pull --ff-only
 docker compose --profile tools build app tools
 docker compose --profile tools run --rm --no-deps tools npm run db:migrate
 docker compose up -d --wait --wait-timeout 120 app
 ```
 
-保持单个 app 实例。不要删除 `data`、证书卷或执行 `docker compose down -v`。数据库不兼容时，回退需要匹配的程序、数据库和文件备份。
+仅当前一步成功时继续；失败查看日志，不直接部署新版本。不要执行 `docker compose down -v`、清空 data 或重置数据库。
+
+仅代码变更且数据库结构仍兼容时，可重新标记旧镜像为 `site-main:local`，再用 `docker compose up -d --no-build --force-recreate app` 恢复旧程序。数据库迁移不自动反向执行；不兼容变更需要停机恢复匹配的数据库与文件备份，不能只回退镜像。
+
+缓存卷可以重建，但 `data/blog`、`data/assets`、MySQL 和环境变量必须另行持久化及备份。`gateway` 和 MySQL 是已有共享服务，本项目不会自动管理它们的生命周期。
