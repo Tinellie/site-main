@@ -9,6 +9,7 @@ import {
 import { Add } from "@mui/icons-material";
 
 import { ResponsiveCardGrid } from "@/components/cards/responsive-card-grid";
+import { CardReveal, CardRevealGroup } from "@/components/cards/card-reveal";
 import { PageSection } from "@/components/layout/page-section";
 import { useAuth } from "@/features/auth/auth-provider";
 import { cardRequest } from "@/features/cards/card-api";
@@ -48,13 +49,15 @@ export function CardCollection({ section }: { section: CardSection }) {
   function renderCard(card: ContentCard) {
     const props = { image: card.image, title: card.title, description: card.description, href: card.link };
     return (
-      <EditableCard key={card.id} title={card.title} enabled={Boolean(user)}
+      <CardReveal key={`${card.id}:${card.image}:${card.icon}`}>
+      <EditableCard title={card.title} enabled={Boolean(user)}
         onEdit={() => setEditing(card)}
         onDelete={() => { setDeleting(card); setDeleteError(""); }}>
         {card.kind === "connect"
           ? <SocialLinkCard platform={card.title} socialId={card.username} href={card.link} image={card.image} iconName={card.icon} />
           : card.kind === "project" ? <ProjectCard {...props} /> : <ArticleCard {...props} />}
       </EditableCard>
+      </CardReveal>
     );
   }
 
@@ -78,18 +81,24 @@ export function CardCollection({ section }: { section: CardSection }) {
         setLoading(true); setError(""); setRetry(value => value + 1);
       }}>重试</Button>}>{error}</Alert>}
       {!loading && !error && (section === "connect" ? (
-        <ResponsiveCardGrid className="social-link-grid" itemSize={{ xs: 12, sm: 6, md: 4 }}>
-          {cards.map(renderCard)}
-        </ResponsiveCardGrid>
+        <CardRevealGroup key="connect">
+          <ResponsiveCardGrid className="social-link-grid" itemSize={{ xs: 12, sm: 6, md: 4 }}>
+            {cards.map(renderCard)}
+          </ResponsiveCardGrid>
+        </CardRevealGroup>
       ) : (
         <Stack id="wo-sections" spacing={4}>
           <PageSection title="Projects">
-            <ResponsiveCardGrid className="project-grid">
-              {cards.filter(card => card.kind === "project").map(renderCard)}
-            </ResponsiveCardGrid>
+            <CardRevealGroup>
+              <ResponsiveCardGrid className="project-grid">
+                {cards.filter(card => card.kind === "project").map(renderCard)}
+              </ResponsiveCardGrid>
+            </CardRevealGroup>
           </PageSection>
           <PageSection title="Articles">
-            <Stack className="article-list" spacing={2}>{cards.filter(card => card.kind === "article").map(renderCard)}</Stack>
+            <CardRevealGroup>
+              <Stack className="article-list" spacing={2}>{cards.filter(card => card.kind === "article").map(renderCard)}</Stack>
+            </CardRevealGroup>
           </PageSection>
         </Stack>
       ))}

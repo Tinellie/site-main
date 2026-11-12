@@ -27,3 +27,24 @@ test("generic Paper and full-screen dialogs retain their own appearance", () => 
   assert.equal(theme.components.MuiPaper, undefined);
   assert.deepEqual(theme.components.MuiDialog.styleOverrides.paper({ theme, ownerState: { fullScreen: true } }), {});
 });
+
+test("revealing cards stay solid during movement before fading to glass", () => {
+  const styles = theme.components.MuiCssBaseline.styleOverrides;
+  const solid = styles[".card-reveal .MuiCard-root"];
+  assert.equal(solid.backgroundColor, "#1e1e1e");
+  assert.equal(solid.backdropFilter, "none");
+  assert.equal(solid.WebkitBackdropFilter, "none");
+  const supported = styles["@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)))"];
+  const glass = supported[".card-reveal[data-revealed='true'] .MuiCard-root"];
+  assert.equal(glass.animation, "card-glass-reveal 500ms ease-out 320ms both");
+  assert.equal(glass.backdropFilter, "blur(12px) saturate(140%)");
+  assert.equal(glass.WebkitBackdropFilter, glass.backdropFilter);
+  assert.deepEqual(supported["@keyframes card-glass-reveal"], {
+    from: { backgroundColor: "#1e1e1e" },
+    to: { backgroundColor: "rgba(30, 30, 30, 0.45)" },
+  });
+  assert.deepEqual(supported["@media (prefers-reduced-motion: reduce)"][".card-reveal[data-revealed='true'] .MuiCard-root"], {
+    animation: "none",
+    backgroundColor: "rgba(30, 30, 30, 0.45)",
+  });
+});

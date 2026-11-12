@@ -25,6 +25,7 @@ import {
 } from "@mui/material";
 
 import { PageTemplate } from "@/components/layout/page-template";
+import { CardReveal, CardRevealGroup } from "@/components/cards/card-reveal";
 import type { AssetEntry, AssetKind } from "@/features/gallery/types";
 
 const icons = {
@@ -136,6 +137,7 @@ export function GalleryPage({
         </Stack>
         <Typography variant="body2" color="text.secondary">{visible.length} 个项目 · 文件夹优先</Typography>
         {!visible.length && <Alert severity="info">{search ? "没有匹配的文件或文件夹。" : "此文件夹为空。"}</Alert>}
+        <CardRevealGroup key={`${view}:${sort}:${displayed.map(entry => entry.url).join("|")}`}>
         <Box sx={{
           display: "grid", gap: 2,
           gridTemplateColumns: view === "grid" ? "repeat(auto-fill, minmax(min(160px, 100%), 1fr))" : "1fr",
@@ -149,7 +151,7 @@ export function GalleryPage({
                 ...(view === "grid" ? { flex: 1, width: "100%", minHeight: 0 } : { width: 56, height: 56, flexShrink: 0 }),
               }}>
                 {entry.kind === "image" ? (
-                  <Image src={entry.url} alt={entry.name} fill
+                  <Image src={entry.url} alt={entry.name} fill loading="eager"
                     sizes={view === "list" ? "56px" : "(max-width: 416px) calc(100vw - 16px), 240px"}
                     style={{ objectFit: "cover" }} />
                 ) : <Icon sx={{ fontSize: view === "grid" ? 48 : 32 }} color="primary" />}
@@ -170,7 +172,7 @@ export function GalleryPage({
               display: "flex", height: "100%", minWidth: 0,
               flexDirection: view === "grid" ? "column" : "row",
             } as const;
-            return <Card key={entry.url}
+            return <CardReveal key={entry.url}><Card
               sx={view === "grid" ? { aspectRatio: "1 / 1", minWidth: 0 } : { minWidth: 0 }}>
               {entry.kind === "folder" ? (
                 <CardActionArea component={NextLink} href={entry.url} prefetch={false} sx={sx}>{content}</CardActionArea>
@@ -180,9 +182,10 @@ export function GalleryPage({
                   setPreviewOpen(true);
                 }} sx={sx}>{content}</CardActionArea>
               )}
-            </Card>;
+            </Card></CardReveal>;
           })}
         </Box>
+        </CardRevealGroup>
       </Stack>
       <Dialog
         open={previewOpen}

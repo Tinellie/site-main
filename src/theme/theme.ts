@@ -46,8 +46,30 @@ export const theme = createTheme({
       styleOverrides: {
         html: { height: "100%", overflow: "hidden" },
         body: { height: "100%", overflow: "hidden" },
+        ".card-reveal .MuiCard-root": {
+          backgroundColor: "#1e1e1e",
+          backdropFilter: "none",
+          WebkitBackdropFilter: "none",
+        },
+        "@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)))": {
+          "@keyframes card-glass-reveal": {
+            from: { backgroundColor: "#1e1e1e" },
+            to: { backgroundColor: "rgba(30, 30, 30, 0.45)" },
+          },
+          ".card-reveal[data-revealed='true'] .MuiCard-root": {
+            backdropFilter: "blur(12px) saturate(140%)",
+            WebkitBackdropFilter: "blur(12px) saturate(140%)",
+            animation: "card-glass-reveal 500ms ease-out 320ms both",
+          },
+          "@media (prefers-reduced-motion: reduce)": {
+            ".card-reveal[data-revealed='true'] .MuiCard-root": {
+              animation: "none",
+              backgroundColor: "rgba(30, 30, 30, 0.45)",
+            },
+          },
+        },
         "::view-transition-group(site-page), ::view-transition-old(site-page), ::view-transition-new(site-page)": {
-          animationDuration: "150ms",
+          animationDuration: "220ms",
           animationTimingFunction: "ease-in-out",
         },
         "::view-transition-old(root), ::view-transition-new(root)": {

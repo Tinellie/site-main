@@ -15,6 +15,9 @@
 - `PageSection`（带小标题的页面分区，使用常见 Section 命名）：只接收 `title`、`children`，无额外外边距。
 - `ResponsiveCardGrid`（响应式卡片矩阵）：使用 MUI Grid，xs/sm/md/lg 分别每行 1/2/3/4 张。
 - `CardLinkAction`（可导航的卡片操作区）：复用 MUI CardActionArea 的 hover、focus 和点击涟漪，内链使用 Next Link，HTTP(S) 外链新标签页打开并设置 rel。
+- `CardRevealGroup` / `CardReveal`：以下 Connect、Works、Blog 主列表与推荐列表、Gallery 卡片集合的公共入场层（不在下方原业务层级逐一展开）。组不产生 DOM；每张卡片增加 `card-reveal` 占位层，图片并行加载及解码后按 DOM 顺序以 100ms 间隔淡入、上浮 12px，动画 320ms。失败或 8 秒超时显示警告并继续；隐藏卡片不可聚焦，减少动态效果时立即显示已就绪卡片。Gallery 预览弹窗不参与。
+  Works 的 Projects、Articles 分别使用独立组，分部间不等待，分部内保留顺序；数据请求仍共用 `CardCollection`。
+  入场前 320ms 卡片采用实心背景，抵达后以 500ms 淡入磨砂玻璃；减少动态效果时直接显示最终效果，不支持 backdrop-filter 时保持实心背景。样式统一位于 theme 的 `MuiCssBaseline`。
 
 ## 登录
 

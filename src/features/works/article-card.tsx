@@ -20,7 +20,7 @@ export function ArticleCard({
       {image && <CardMedia
         className="ac-background"
         component="img"
-        loading="lazy"
+        loading="eager"
         decoding="async"
         image={resolveCardImagePath(image)}
         alt=""

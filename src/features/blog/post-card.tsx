@@ -38,7 +38,8 @@ export function PostCard({
             component="img"
             image={post.coverImage}
             alt={post.title}
-            loading="lazy"
+            loading="eager"
+            decoding="async"
             sx={
               compact
                 ? {

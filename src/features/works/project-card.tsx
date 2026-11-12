@@ -28,7 +28,7 @@ export function ProjectCard({
         {image && <CardMedia
           className="prc-image"
           component="img"
-          loading="lazy"
+          loading="eager"
           decoding="async"
           image={resolveCardImagePath(image)}
           alt={title}
