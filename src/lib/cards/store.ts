@@ -8,6 +8,7 @@ import type { CardInput, CardSection } from "@/features/cards/types";
 import { requireEditor } from "@/lib/auth/session";
 import { AuthError } from "@/lib/auth/http";
 import { hasMuiIcon } from "@/lib/cards/icons";
+import { withContentWriteLock } from "@/lib/content-write-lock";
 
 export async function listCards(section: CardSection) {
   return getDb().select().from(contentCards)
@@ -18,7 +19,7 @@ export async function listCards(section: CardSection) {
 export async function saveCard(input: CardInput, id?: number) {
   await requireEditor();
   if (!(await hasMuiIcon(input.icon))) throw new AuthError("MUI 图标不存在。", 400);
-  return getDb().transaction(async (db) => {
+  return withContentWriteLock(() => getDb().transaction(async (db) => {
     if (input.categoryId !== null) {
       const [category] = await db.select().from(connectCategories)
         .where(eq(connectCategories.id, input.categoryId)).limit(1).for("update");
@@ -35,7 +36,7 @@ export async function saveCard(input: CardInput, id?: number) {
     }
     const [created] = await db.insert(contentCards).values(input).$returningId();
     return { ...input, id: created.id };
-  });
+  }));
 }
 
 export async function deleteCard(id: number) {

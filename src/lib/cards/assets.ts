@@ -54,6 +54,16 @@ export async function readCardImage(image: string) {
 
 export async function uploadCardImage(file: File) {
   await requireEditor();
+  const bytes = await validateImageUpload(file);
+  const extension = path.extname(file.name).toLowerCase();
+  const name = path.basename(file.name, path.extname(file.name)).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 120) || "image";
+  const image = relativePath(`${name}-${randomUUID()}${extension}`);
+  const destination = await safePath(image, true);
+  await fs.writeFile(destination, bytes, { flag: "wx" });
+  return image;
+}
+
+export async function validateImageUpload(file: File) {
   if (file.size < 1 || file.size > MAX_CARD_IMAGE_BYTES || !file.type.startsWith("image/")) {
     throw new AuthError("请选择不超过 10MB 的图片。", 400);
   }
@@ -67,32 +77,10 @@ export async function uploadCardImage(file: File) {
     : extension === ".webp" ? signature.startsWith("RIFF") && signature.slice(8, 12) === "WEBP"
     : signature.slice(4, 8) === "ftyp" && /avif|avis/.test(signature.slice(8));
   if (!valid) throw new AuthError("图片内容与文件格式不符。", 400);
-  const name = path.basename(file.name, path.extname(file.name)).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 120) || "image";
-  const image = relativePath(`${name}-${randomUUID()}${extension}`);
-  const destination = await safePath(image, true);
-  await fs.writeFile(destination, bytes, { flag: "wx" });
-  return image;
+  return bytes;
 }
 
 export async function moveCardImage(source: string, target: string) {
-  await requireEditor();
-  const sourceRelative = relativePath(source);
-  const targetRelative = relativePath(target);
-  const sourcePath = await safePath(sourceRelative, false);
-  const stat = await fs.lstat(sourcePath);
-  if (!stat.isFile() || stat.isSymbolicLink()) throw new AuthError("原图片不是普通文件。", 400);
-  if (sourceRelative === targetRelative) return sourceRelative;
-  const targetPath = await safePath(targetRelative, true);
-  // link fails atomically if the target already exists, unlike rename on POSIX.
-  try { await fs.link(sourcePath, targetPath); } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "EEXIST") {
-      throw new AuthError("目标已存在同名文件，请换一个路径。", 409);
-    }
-    throw error;
-  }
-  try { await fs.unlink(sourcePath); } catch (error) {
-    await fs.unlink(targetPath);
-    throw error;
-  }
-  return targetRelative;
+  const { moveManagedAsset } = await import("@/lib/gallery/file-manager");
+  return moveManagedAsset(relativePath(source), relativePath(target));
 }

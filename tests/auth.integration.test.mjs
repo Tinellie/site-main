@@ -41,6 +41,7 @@ test("MySQL authentication protects every write surface", {
       await db.execute("DELETE FROM auth_users WHERE id = ?", [userId]);
       await db.execute("DELETE FROM auth_login_limits WHERE limit_key IN (?, ?)", [globalKey, accountKey]);
       if (createdPost) {
+        await db.execute("DELETE FROM article_image_references WHERE post_id = ?", [postId]);
         await unlink(postPath);
         for (const file of await readdir(historyPath)) await unlink(path.join(historyPath, file));
         await rmdir(historyPath);

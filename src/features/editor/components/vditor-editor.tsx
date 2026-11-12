@@ -17,6 +17,8 @@ import Vditor from "vditor";
 import "vditor/dist/index.css";
 
 import type { MarkdownEditorProps } from "@/features/editor/types";
+import { assetReferencePath } from "@/features/gallery/asset-path";
+import { rewriteMarkdownImages, unescapeImageUrl } from "@/lib/images/markdown-images";
 
 interface HoveredImage {
   src: string;
@@ -26,32 +28,7 @@ interface HoveredImage {
 }
 
 function toAssetRelativePath(src: string): string | null {
-  try {
-    const url = new URL(src, window.location.origin);
-    if (!url.pathname.startsWith("/assets/")) {
-      return null;
-    }
-    const relativePath = decodeURIComponent(url.pathname.slice("/assets/".length));
-    const segments = relativePath.split("/");
-    if (
-      !relativePath ||
-      segments.some((segment) => !segment || segment === "." || segment === "..")
-    ) {
-      return null;
-    }
-    return segments.join("/");
-  } catch {
-    return null;
-  }
-}
-
-function normalizeUrlPath(urlLike: string): string {
-  try {
-    const url = new URL(urlLike, `${window.location.origin}/assets/`);
-    return `${url.origin}${decodeURIComponent(url.pathname)}`;
-  } catch {
-    return decodeURIComponent(urlLike);
-  }
+  return assetReferencePath(src, window.location.origin);
 }
 
 function replaceImageUrlInMarkdown(
@@ -59,28 +36,10 @@ function replaceImageUrlInMarkdown(
   sourceUrl: string,
   targetUrl: string,
 ): string {
-  const sourcePath = normalizeUrlPath(sourceUrl);
-
-  const fromMarkdown = markdown.replaceAll(
-    /!\[([^\]]*)\]\(([^)]+)\)/g,
-    (full, altText: string, rawTarget: string) => {
-      const target = rawTarget.trim();
-      const targetMatch = /^(\S+)(\s+["'][^"']*["'])?$/.exec(target);
-      if (!targetMatch) return full;
-      const imageUrl = targetMatch[1];
-      const suffix = targetMatch[2] ?? "";
-      if (normalizeUrlPath(imageUrl) !== sourcePath) return full;
-      return `![${altText}](${targetUrl}${suffix})`;
-    },
-  );
-
-  return fromMarkdown.replaceAll(
-    /<img([^>]*?)src=(["'])(.*?)\2([^>]*)>/gi,
-    (full, before: string, quote: string, imageUrl: string, after: string) => {
-      if (normalizeUrlPath(imageUrl) !== sourcePath) return full;
-      return `<img${before}src=${quote}${targetUrl}${quote}${after}>`;
-    },
-  );
+  const sourcePath = toAssetRelativePath(sourceUrl)?.toLowerCase();
+  return rewriteMarkdownImages(markdown, url =>
+    sourcePath && toAssetRelativePath(unescapeImageUrl(url))?.toLowerCase() === sourcePath
+      ? targetUrl + (url.match(/[?#].*$/)?.[0] ?? "") : null);
 }
 
 export function VditorEditor({

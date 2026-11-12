@@ -138,6 +138,14 @@ Recommended 中 `compact=true` 的 PostCard 固定高度为 88px；封面区域�
 
 详情：第 1 层 `PostDetailPage`，第 2 层 `PageTemplate`。展示封面、标题、标签、时间与 Markdown 正文，不重复展示摘要；文章标题靠左，标签排在标题下方，发布／更新时间在右侧上下排列，采用 MUI `caption` 和 `text.disabled`，窄屏换行后仍右对齐，长标题自动换行。模板保留视觉隐藏的 h1，正文标题为 h2。未知 ID 返回 404。关键 ID：根 `post-detail`；内部 `pd-image`、`pd-title`、`pd-date`、`pd-updated-date`。
 
+## Gallery
+
+`GalleryPage` 复用 `PageTemplate`、`CardRevealGroup`、`CardReveal`；文件卡片由 `EditableCard` 提供右上角的认证编辑／删除操作，文件夹没有管理按钮。工具栏的上传按钮仅登录后出现。`FileDialog` 按需加载，上传和移动只显示一个 Path 字段，检查新父目录并提示，删除则显示页面／文章引用和二次确认。成功后刷新服务端目录，保留当前搜索、排序和视图。
+
+`/api/gallery/files` 负责认证检查路径／引用、上传、移动及删除；`file-manager` 共用文章和卡片的写锁，并协调 MySQL 事务、Markdown 历史和文件回滚。文章保存时更新 `article_image_references`；查询占用时扫描当前文章补录旧记录，使用语法解析器识别 Markdown 图片、引用定义及 HTML 图片。文件移动同时更新文章与卡片，删除引用中文件需要明确再次确认。
+
+`/assets/*` 重写至 `/api/gallery/assets/[...path]`，按运行时磁盘内容公开读取文件，支持媒体流和 Range，避免生产构建后新增文件无法访问。路径不得越级或经过符号链接。`gallery-file-dialog-title` 是管理弹窗的无障碍标题。
+
 ## DOM 标识缩写约定
 
 根组件保留完整名称；内部标识使用组件首字母缩写和完整职责后缀。例如 `slc-icon`、`ac-title`、`pfp-search`。ProjectCard 和 PostCard 会产生相同首字母，因此用 `prc` 与 `poc` 区分。单词前缀使用开首音节，例如 Works 的内部区域为 `wo-sections`。

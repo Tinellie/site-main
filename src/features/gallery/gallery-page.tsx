@@ -3,17 +3,21 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import NextLink from "next/link";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 
 import {
   Folder as FolderIcon, InsertDriveFile as InsertDriveFileIcon,
   Image as ImageIcon, Movie as MovieIcon, AudioFile as AudioFileIcon,
   Description as DescriptionIcon,
+  Upload as UploadIcon,
   ViewList as ViewListIcon, GridView as GridViewIcon,
 } from "@mui/icons-material";
 import {
   Alert,
   Box,
   Breadcrumbs,
+  Button,
   Card, CardActionArea,
   Dialog, DialogContent, DialogTitle,
   Link,
@@ -27,6 +31,11 @@ import {
 import { PageTemplate } from "@/components/layout/page-template";
 import { CardReveal, CardRevealGroup } from "@/components/cards/card-reveal";
 import type { AssetEntry, AssetKind } from "@/features/gallery/types";
+import { useAuth } from "@/features/auth/auth-provider";
+import { EditableCard } from "@/features/cards/editable-card";
+import type { FileOperation } from "./file-dialog";
+
+const FileDialog = dynamic(() => import("./file-dialog").then(module => module.FileDialog));
 
 const icons = {
   folder: FolderIcon, image: ImageIcon, video: MovieIcon,
@@ -74,6 +83,9 @@ export function GalleryPage({
   segments: string[];
   entries: AssetEntry[];
 }) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [operation, setOperation] = useState<FileOperation | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("name-asc");
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -119,6 +131,15 @@ export function GalleryPage({
           ))}
         </Breadcrumbs>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          {user && <Button component="label" variant="outlined" startIcon={<UploadIcon />}>
+            上传图片
+            <input hidden type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"
+              onChange={event => {
+                const file = event.target.files?.[0];
+                if (file) setOperation({ kind: "upload", file });
+                event.target.value = "";
+              }} />
+          </Button>}
           <TextField label="搜索当前目录" type="search" size="small" value={search}
             onChange={event => setSearch(event.target.value)} sx={{ flex: 1 }} />
           <TextField select label="排序" size="small" value={sort}
@@ -172,7 +193,11 @@ export function GalleryPage({
               display: "flex", height: "100%", minWidth: 0,
               flexDirection: view === "grid" ? "column" : "row",
             } as const;
-            return <CardReveal key={entry.url}><Card
+            const relativePath = [...segments, entry.name].join("/");
+            return <CardReveal key={entry.url}><EditableCard title={entry.name}
+              enabled={!!user && entry.kind !== "folder"}
+              onEdit={() => setOperation({ kind: "edit", path: relativePath })}
+              onDelete={() => setOperation({ kind: "delete", path: relativePath })}><Card
               sx={view === "grid" ? { aspectRatio: "1 / 1", minWidth: 0 } : { minWidth: 0 }}>
               {entry.kind === "folder" ? (
                 <CardActionArea component={NextLink} href={entry.url} prefetch={false} sx={sx}>{content}</CardActionArea>
@@ -182,11 +207,19 @@ export function GalleryPage({
                   setPreviewOpen(true);
                 }} sx={sx}>{content}</CardActionArea>
               )}
-            </Card></CardReveal>;
+            </Card></EditableCard></CardReveal>;
           })}
         </Box>
         </CardRevealGroup>
       </Stack>
+      {user && operation && <FileDialog operation={operation}
+        onClose={() => setOperation(null)}
+        onComplete={() => {
+          setOperation(null);
+          setPreviewOpen(false);
+          setSelected(null);
+          router.refresh();
+        }} />}
       <Dialog
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}

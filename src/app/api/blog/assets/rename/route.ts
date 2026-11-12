@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { renameAssetFile } from "@/lib/blog/post-store";
 import { authFailure } from "@/lib/auth/http";
 import { authorizeWrite } from "@/lib/auth/session";
+import { revalidatePath } from "next/cache";
 
 export async function PATCH(request: Request) {
   try {
@@ -32,6 +33,8 @@ export async function PATCH(request: Request) {
 
   try {
     const url = await renameAssetFile(body.sourcePath, body.targetPath);
+    revalidatePath("/blog", "layout");
+    revalidatePath("/gallery", "layout");
     return NextResponse.json({ url });
   } catch (error) {
     const message = error instanceof Error ? error.message : "重命名失败。";

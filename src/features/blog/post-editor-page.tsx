@@ -8,6 +8,7 @@ import { Alert, Button, Stack, TextField } from "@mui/material";
 import { PageTemplate } from "@/components/layout/page-template";
 import { MarkdownEditor } from "@/features/editor/components/markdown-editor";
 import type { BlogPost } from "@/features/blog/types";
+import { assetReferencePath } from "@/features/gallery/asset-path";
 
 interface PostEditorPageProps {
   id: number;
@@ -53,26 +54,35 @@ export function PostEditorPage({ id, initialPost }: PostEditorPageProps) {
   const [content, setContent] = useState(initialPost?.content ?? "");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [renaming, setRenaming] = useState(false);
 
   const editorKey = useMemo(() => `${id}:${initialPost?.updatedAt ?? "new"}`, [id, initialPost?.updatedAt]);
 
   async function renameImage(sourcePath: string, targetPath: string): Promise<string> {
-    const response = await fetch("/api/blog/assets/rename", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sourcePath, targetPath }),
-    });
-    const payload = (await response.json()) as { url?: unknown; message?: unknown };
-    if (!response.ok || typeof payload.url !== "string") {
-      throw new Error(
-        typeof payload.message === "string" ? payload.message : "修改图片路径失败。",
-      );
-    }
-    return payload.url;
+    if (saving || renaming) throw new Error("请等待当前保存或图片移动完成。");
+    setRenaming(true);
+    try {
+      const response = await fetch("/api/blog/assets/rename", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourcePath, targetPath }),
+      });
+      const payload = (await response.json()) as { url?: unknown; message?: unknown };
+      if (!response.ok || typeof payload.url !== "string") {
+        throw new Error(
+          typeof payload.message === "string" ? payload.message : "修改图片路径失败。",
+        );
+      }
+      const url = payload.url;
+      setCoverImage(current =>
+        assetReferencePath(current, window.location.origin)?.toLowerCase() === sourcePath.toLowerCase()
+          ? toCoverInputValue(url) + (current.match(/[?#].*$/)?.[0] ?? "") : current);
+      return url;
+    } finally { setRenaming(false); }
   }
 
   async function handleSave() {
-    if (saving) return;
+    if (saving || renaming) return;
     if (!title.trim()) {
       setError("标题不能为空。");
       return;
@@ -155,7 +165,7 @@ export function PostEditorPage({ id, initialPost }: PostEditorPageProps) {
           fullWidth
         />
         <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
-          <Button variant="contained" onClick={handleSave} disabled={saving}>
+          <Button variant="contained" onClick={handleSave} disabled={saving || renaming}>
             保存文章
           </Button>
         </Stack>

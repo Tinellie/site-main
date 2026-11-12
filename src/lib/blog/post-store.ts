@@ -6,6 +6,9 @@ import path from "node:path";
 
 import matter from "gray-matter";
 import { requireEditor } from "@/lib/auth/session";
+import { getDb } from "@/db";
+import { recordPostImages } from "@/lib/images/reference-store";
+import { withContentWriteLock } from "@/lib/content-write-lock";
 
 const POST_FILE_NAME = /^([1-9]\d*)\.md$/;
 const SUMMARY_LENGTH = 140;
@@ -253,6 +256,10 @@ export async function getNextPostId(): Promise<number> {
 
 export async function savePost(input: SavePostInput): Promise<BlogPost> {
   await requireEditor();
+  return withContentWriteLock(() => savePostWithReferences(input));
+}
+
+async function savePostWithReferences(input: SavePostInput): Promise<BlogPost> {
   validateId(input.id);
   const title = input.title.trim();
   if (!title) {
@@ -268,6 +275,7 @@ export async function savePost(input: SavePostInput): Promise<BlogPost> {
   const coverImage = resolveCoverImage(input.coverImage, input.content);
   const summary = buildSummary(input.content);
   let publishedAt = now;
+  let archivedPath: string | undefined;
 
   if (exists) {
     const previousSource = await fs.readFile(filePath, "utf8");
@@ -283,6 +291,7 @@ export async function savePost(input: SavePostInput): Promise<BlogPost> {
       historyPath = path.join(historyDir, `${versionTimestamp}-${randomUUID()}.md`);
     }
     await fs.rename(filePath, historyPath);
+    archivedPath = historyPath;
   }
 
   const frontMatter = {
@@ -296,7 +305,21 @@ export async function savePost(input: SavePostInput): Promise<BlogPost> {
   };
 
   const source = matter.stringify(input.content, frontMatter);
-  await fs.writeFile(filePath, source, "utf8");
+  try {
+    await getDb().transaction(async tx => {
+      await recordPostImages(tx, { id: input.id, title, coverImage, content: input.content });
+      await fs.writeFile(filePath, source, "utf8");
+    });
+  } catch (error) {
+    try {
+      if (archivedPath) await fs.copyFile(archivedPath, filePath);
+      else await fs.rm(filePath, { force: true });
+    } catch (rollbackError) {
+      console.error("Article save rollback failed:", rollbackError);
+      throw new Error("文章保存及回滚失败，请检查文章与数据库状态。", { cause: error });
+    }
+    throw error;
+  }
 
   return {
     id: input.id,
@@ -358,37 +381,7 @@ export async function renameAssetFile(
   sourceRelativePath: string,
   targetRelativePath: string,
 ): Promise<string> {
-  await requireEditor();
-  const sourceRelative = validateAssetRelativePath(sourceRelativePath);
-  const targetRelative = validateAssetRelativePath(targetRelativePath);
-  const sourcePath = path.join(BLOG_ASSET_ROOT, sourceRelative);
-  const targetPath = path.join(BLOG_ASSET_ROOT, targetRelative);
-
-  if (!(await fileExists(sourcePath))) {
-    throw new Error("原始图片不存在。");
-  }
-  if (await fileExists(targetPath)) {
-    throw new Error("目标路径已存在同名资源。");
-  }
-
-  await fs.mkdir(path.dirname(targetPath), { recursive: true });
-  await fs.rename(sourcePath, targetPath);
-  await removeEmptyDirectoriesUpward(path.dirname(sourcePath), BLOG_ASSET_ROOT);
-
-  return `/assets/${targetRelative.split("/").map(encodeURIComponent).join("/")}`;
-}
-
-async function removeEmptyDirectoriesUpward(
-  currentPath: string,
-  rootPath: string,
-): Promise<void> {
-  const normalizedRoot = path.resolve(rootPath);
-  let cursor = path.resolve(currentPath);
-
-  while (cursor.startsWith(normalizedRoot) && cursor !== normalizedRoot) {
-    const entries = await fs.readdir(cursor);
-    if (entries.length > 0) break;
-    await fs.rmdir(cursor);
-    cursor = path.dirname(cursor);
-  }
+  const { moveManagedAsset } = await import("@/lib/gallery/file-manager");
+  const relative = await moveManagedAsset(sourceRelativePath, targetRelativePath);
+  return `/assets/${relative.split("/").map(encodeURIComponent).join("/")}`;
 }

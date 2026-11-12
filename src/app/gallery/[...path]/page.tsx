@@ -13,7 +13,10 @@ export default async function Page({
   params: Promise<{ path: string[] }>;
 }) {
   const { path } = await params;
-  const entries = await listAssets(path);
+  let segments: string[];
+  try { segments = path.map(segment => decodeURIComponent(segment)); }
+  catch { notFound(); }
+  const entries = await listAssets(segments);
   if (!entries) notFound();
-  return <GalleryPage key={path.join("/")} segments={path} entries={entries} />;
+  return <GalleryPage key={segments.join("/")} segments={segments} entries={entries} />;
 }

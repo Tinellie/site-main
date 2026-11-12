@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getPostById, savePost } from "@/lib/blog/post-store";
 import { authFailure } from "@/lib/auth/http";
 import { authorizeWrite } from "@/lib/auth/session";
+import { revalidatePath } from "next/cache";
 
 function parsePostId(value: string): number | null {
   const id = Number(value);
@@ -82,6 +83,7 @@ export async function PUT(
       tags: body.tags,
       content: body.content,
     });
+    revalidatePath("/blog", "layout");
     return NextResponse.json(post);
   } catch (error) {
     const message = error instanceof Error ? error.message : "保存失败。";

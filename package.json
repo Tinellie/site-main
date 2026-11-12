@@ -18,6 +18,8 @@
     "test:blog": "node --experimental-strip-types --test tests/blog.test.mjs",
     "test:theme": "node --experimental-strip-types --test tests/theme.test.mjs",
     "test:cards": "node --experimental-strip-types --test tests/cards.test.mjs",
+    "test:gallery": "node --experimental-strip-types --test tests/gallery.test.mjs",
+    "test:gallery:integration": "node --experimental-strip-types --test tests/gallery.integration.test.mjs",
     "test:cards:integration": "node --experimental-strip-types --test tests/cards.integration.test.mjs",
     "test:auth:integration": "node --experimental-strip-types --test tests/auth.integration.test.mjs"
   },
@@ -32,6 +34,8 @@
     "dotenv": "^18.0.9",
     "drizzle-orm": "^0.45.4",
     "gray-matter": "^4.0.3",
+    "mdast-util-from-markdown": "^2.0.3",
+    "micromark-util-decode-string": "^2.0.1",
     "mysql2": "^3.24.6",
     "next": "16.4.5",
     "react": "19.3.0",
