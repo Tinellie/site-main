@@ -119,13 +119,13 @@ jobs:
             exec mysqldump --user=root --single-transaction --no-tablespaces --routines --triggers site_main
             ' > "$backup/database.sql"
             test -s "$backup/database.sql"
-            docker compose --profile tools run --rm --no-deps -T --user 0:0 tools \
+            docker compose --profile tools run --rm --no-deps --interactive=false -T --user 0:0 tools \
               tar -czf - -C /app/content blog -C /app/public assets > "$backup/files.tar.gz"
             gzip -t "$backup/files.tar.gz"
             echo "Backup completed: $backup"
 
             phase=migrating
-            docker compose --profile tools run --rm --no-deps -T tools npm run db:migrate
+            docker compose --profile tools run --rm --no-deps --interactive=false -T tools npm run db:migrate
 
             phase=starting
             docker compose up -d --no-deps --no-build --wait --wait-timeout 180 app

@@ -36,6 +36,9 @@ GIT
 cat > "$TEST_ROOT/bin/docker" <<'DOCKER'
 #!/bin/bash
 printf 'docker %s\\n' "$*" >> "$LOG"
+if [[ "$*" == 'compose --profile tools run '* && "$*" != *'--interactive=false'* ]]; then
+  cat > /dev/null
+fi
 case "$*" in
   'compose ps -q app') echo old-app;;
   'inspect --format {{.Image}} old-app') echo sha256:old;;
