@@ -9,6 +9,7 @@ export const connectCategories = mysqlTable("connect_categories", {
 export const contentCards = mysqlTable("content_cards", {
   id: int("id").autoincrement().primaryKey(),
   kind: mysqlEnum("kind", ["connect", "project", "article"]).notNull(),
+  position: int("position").notNull().default(0),
   title: varchar("title", { length: 200 }).notNull(),
   username: varchar("username", { length: 200 }).notNull().default(""),
   link: varchar("link", { length: 2048 }).notNull(),

@@ -178,7 +178,7 @@ export function CardEditor({
                   />
                   <Button component="label" variant="outlined">
                     上传图片
-                    <input type="file" accept=".png,.jpg,.jpeg,.gif,.webp,.avif" hidden
+                    <input type="file" accept=".png,.jpg,.jpeg,.gif,.webp,.avif,.svg" hidden
                       onChange={event => {
                         const file = event.target.files?.[0];
                         event.target.value = "";

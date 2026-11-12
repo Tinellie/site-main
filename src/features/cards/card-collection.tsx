@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
@@ -36,6 +36,25 @@ export function CardCollection({ section }: { section: CardSection }) {
   const [busy, setBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [retry, setRetry] = useState(0);
+  const [moving, setMoving] = useState(false);
+  const movingRef = useRef(false);
+  const [moveError, setMoveError] = useState("");
+
+  async function move(card: ContentCard, direction: "up" | "down") {
+    if (movingRef.current) return;
+    movingRef.current = true;
+    setMoving(true);
+    setMoveError("");
+    try {
+      const result = await cardRequest<{ cards: ContentCard[] }>(`/api/cards/${card.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction }),
+      });
+      setCards(result.cards);
+    } catch (error) {
+      setMoveError(error instanceof Error ? error.message : "卡片移动失败。");
+    } finally { movingRef.current = false; setMoving(false); }
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,11 +72,13 @@ export function CardCollection({ section }: { section: CardSection }) {
     return () => controller.abort();
   }, [section, retry]);
 
-  function renderCard(card: ContentCard) {
+  function renderCard(card: ContentCard, index: number, group: ContentCard[]) {
     const props = { image: card.image, title: card.title, description: card.description, href: card.link };
     return (
       <CardReveal key={`${card.id}:${card.image}:${card.icon}`}>
       <EditableCard title={card.title} enabled={Boolean(user)}
+        first={index === 0} last={index === group.length - 1} busy={moving}
+        onMove={direction => void move(card, direction)}
         onEdit={() => setEditing(card)}
         onDelete={() => { setDeleting(card); setDeleteError(""); }}>
         {card.kind === "connect"
@@ -94,6 +115,7 @@ export function CardCollection({ section }: { section: CardSection }) {
   return (
     <>
       {loading && <CircularProgress aria-label="加载卡片中" />}
+      {moveError && <Alert severity="error" onClose={() => setMoveError("")}>{moveError}</Alert>}
       {error && <Alert severity="error" action={<Button onClick={() => {
         setLoading(true); setError(""); setRetry(value => value + 1);
       }}>重试</Button>}>{error}</Alert>}
@@ -140,9 +162,9 @@ export function CardCollection({ section }: { section: CardSection }) {
             setEditing(undefined);
           }}
           onSaved={saved => {
-            setCards(previous => editing
+            setCards(previous => (editing
               ? previous.map(card => card.id === saved.id ? saved : card)
-              : [...previous, saved]);
+              : [...previous, saved]).sort((a, b) => a.position - b.position || a.id - b.id));
             setEditing(undefined);
           }} />
       )}

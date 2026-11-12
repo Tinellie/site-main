@@ -9,6 +9,7 @@ import { requireEditor } from "@/lib/auth/session";
 import { getDb } from "@/db";
 import { recordPostImages } from "@/lib/images/reference-store";
 import { withContentWriteLock } from "@/lib/content-write-lock";
+import { uploadCardImage } from "@/lib/cards/assets";
 
 const POST_FILE_NAME = /^([1-9]\d*)\.md$/;
 const SUMMARY_LENGTH = 140;
@@ -364,17 +365,8 @@ export function validateAssetRelativePath(relativePath: string): string {
 }
 
 export async function writeUploadedAsset(file: File): Promise<string> {
-  await requireEditor();
-  const originalName = file.name || "image";
-  const extension = path.extname(originalName).toLowerCase() || ".png";
-  const baseName = path.basename(originalName, extension) || "image";
-  const safeName = `${baseName.replaceAll(/[^a-zA-Z0-9-_]+/g, "-")}-${Date.now()}${extension}`;
-  const relativePath = validateAssetRelativePath(safeName);
-  const destinationPath = path.join(BLOG_ASSET_ROOT, relativePath);
-  await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-  const data = Buffer.from(await file.arrayBuffer());
-  await fs.writeFile(destinationPath, data);
-  return `/assets/${relativePath.split("/").map(encodeURIComponent).join("/")}`;
+  const image = await uploadCardImage(file);
+  return `/assets/${image.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 export async function renameAssetFile(

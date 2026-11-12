@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { writeUploadedAsset } from "@/lib/blog/post-store";
-import { authFailure } from "@/lib/auth/http";
+import { AuthError, authFailure } from "@/lib/auth/http";
 import { authorizeWrite } from "@/lib/auth/session";
 
 interface UploadResult {
@@ -39,6 +39,7 @@ export async function POST(request: Request) {
 
   const succMap: Record<string, string> = {};
   const errFiles: string[] = [];
+  const errors: string[] = [];
 
   await Promise.all(
     files.map(async (file) => {
@@ -49,7 +50,9 @@ export async function POST(request: Request) {
       try {
         const url = await writeUploadedAsset(file);
         succMap[file.name || `image-${Date.now()}`] = url.slice("/assets/".length);
-      } catch {
+      } catch (error) {
+        console.error("Article image upload failed:", error);
+        errors.push(error instanceof AuthError ? error.message : "图片上传失败，请检查服务器存储权限。");
         errFiles.push(file.name || "unknown");
       }
     }),
@@ -59,7 +62,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json<UploadResult>({
     code: success ? 0 : 1,
-    msg: success ? "" : "图片上传失败。",
+    msg: errors.length ? [...new Set(errors)].join(" ") : success ? "" : "图片上传失败。",
     data: {
       errFiles,
       succMap,

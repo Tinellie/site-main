@@ -7,13 +7,15 @@ import path from "node:path";
 import { requireEditor } from "@/lib/auth/session";
 import { AuthError } from "@/lib/auth/http";
 import { resolveImagePath } from "@/lib/images/resolve-image-path";
+import { validateSvg } from "@/lib/images/svg";
 
 const root = path.join(process.cwd(), "public", "assets");
 export const MAX_CARD_IMAGE_BYTES = 10 * 1024 * 1024;
-const extensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif"]);
+const extensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg"]);
 const contentTypes: Record<string, string> = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
   ".gif": "image/gif", ".webp": "image/webp", ".avif": "image/avif",
+  ".svg": "image/svg+xml",
 };
 
 function relativePath(value: string) {
@@ -21,7 +23,7 @@ function relativePath(value: string) {
     throw new AuthError("图片路径必须是 assets 下的相对路径。", 400);
   }
   if (value.startsWith("@images/") || !extensions.has(path.extname(value).toLowerCase())) {
-    throw new AuthError("图片仅支持 PNG、JPEG、GIF、WebP、AVIF。", 400);
+    throw new AuthError("图片仅支持 PNG、JPEG、GIF、WebP、AVIF、SVG。", 400);
   }
   return decodeURIComponent(value);
 }
@@ -70,6 +72,12 @@ export async function validateImageUpload(file: File) {
   const extension = path.extname(file.name).toLowerCase();
   if (!extensions.has(extension)) throw new AuthError("不支持此图片格式。", 400);
   const bytes = Buffer.from(await file.arrayBuffer());
+  if (extension === ".svg") {
+    try { validateSvg(bytes); } catch {
+      throw new AuthError("SVG 格式无效，或包含脚本、外部引用等不支持的内容。", 400);
+    }
+    return bytes;
+  }
   const signature = bytes.subarray(0, 32).toString("latin1");
   const valid = extension === ".png" ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
     : extension === ".jpg" || extension === ".jpeg" ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255

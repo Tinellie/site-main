@@ -90,7 +90,7 @@ export function CardReveal({ children }: { children: ReactNode }) {
 
     function settle(image: HTMLImageElement, failed: boolean) {
       if (!active || completed || !pending.has(image)) return;
-      if (failed) failure = "图片加载失败，可刷新页面重试。";
+      if (failed) console.warn("Card image failed to load:", image.currentSrc || image.src);
       pending.delete(image);
       if (!pending.size) finish();
     }

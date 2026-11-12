@@ -40,4 +40,21 @@ npm run dev
 - 数据库、文章和图片需一同备份；保持单个网站运行实例。
 - 不提交真实环境变量、密码或备份。
 
+## 自动部署
+
+[Deploy Site Main](.github/workflows/deploy.yml) 在推送到 `main` / `master` 或手动触发后，检查代码并通过 SSH 更新 `/opt/site-main`。
+构建成功后短暂停站，备份本站数据库及文章、图片，再迁移数据库、启动应用并检查 HTTPS。不会重启共享 MySQL 或 Gateway。
+
+首次启用前，在 **site-main 仓库**配置 `VULTR_SSH_KEY`、`VULTR_SSH_PASSPHRASE`、`VULTR_HOST_FINGERPRINT` 三个 Actions Secrets，
+并按[部署指南的自动部署准备](docs/deployment.md#11-github-actions-自动部署)处理 `deploy` 用户权限；gateway 仓库的 Secrets 不会自动共享。
+备份保留在服务器 `backups/`，不会自动清理或上传到 GitHub；备份或迁移失败时需人工恢复，不会自动回退数据库。
+
+## 图片与卡片管理
+
+- Gallery、卡片和文章上传支持 PNG、JPEG、GIF、WebP、AVIF、SVG，单张不超过 10MB。
+- SVG 以图片显示，不嵌入可执行 HTML；拒绝无效 XML、DOCTYPE、脚本、事件处理器及外部链接引用，不加载外部资源。
+- 登录后，Connect 和 Works 卡片的编辑按钮旁显示上移、下移按钮，每次在当前分组内移动一格，顺序保存至数据库。
+- Connect 分类各自排序，Works 的 Projects、Articles 分别排序；首尾按钮自动禁用。
+- 更新到此版本需先执行 `npm run db:migrate`，迁移会按原卡片 ID 初始化顺序，保留原显示顺序。Docker 部署使用 tools 服务执行迁移，见部署指南。
+
 部署步骤见 [部署指南](docs/deployment.md)，代码入口见 [组件索引](docs/component-map.md)。

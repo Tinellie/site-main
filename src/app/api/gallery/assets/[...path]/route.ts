@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { AuthError, authFailure } from "@/lib/auth/http";
 import { existingAssetPath, validatedAssetPath } from "@/lib/gallery/file-paths";
+import { SVG_CONTENT_SECURITY_POLICY } from "@/lib/images/svg";
 
 const types: Record<string, string> = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
@@ -42,7 +43,8 @@ export async function GET(request: Request, context: RouteContext<"/api/gallery/
       "Content-Type": contentType,
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
-      "Content-Security-Policy": "default-src 'none'; sandbox",
+      "Content-Security-Policy": contentType === "image/svg+xml"
+        ? SVG_CONTENT_SECURITY_POLICY : "default-src 'none'; sandbox",
       "Accept-Ranges": "bytes",
     };
     const range = request.headers.get("range");

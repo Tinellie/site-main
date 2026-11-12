@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { AuthError, authFailure } from "@/lib/auth/http";
 import { readCardImage } from "@/lib/cards/assets";
+import { SVG_CONTENT_SECURITY_POLICY } from "@/lib/images/svg";
 
 export async function GET(
   _request: Request,
@@ -16,6 +17,7 @@ export async function GET(
         "Content-Length": String(image.bytes.byteLength),
         "Cache-Control": "public, max-age=0, must-revalidate",
         "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": SVG_CONTENT_SECURITY_POLICY,
       },
     });
   } catch (error) {

@@ -1,0 +1,138 @@
+name: Deploy Site Main
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-main-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out site
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check code and deployment configuration
+        run: |
+          set -eu
+          npm ci
+          npm run lint
+          node --experimental-strip-types --test tests/*.test.mjs
+          cp .env.production.example .env.production
+          docker compose --profile tools config --quiet
+
+      - name: Deploy site over SSH
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
+        env:
+          DEPLOY_COMMIT: ${{ github.sha }}
+        with:
+          host: 139.180.203.201
+          username: deploy
+          port: 22
+          key: ${{ secrets.VULTR_SSH_KEY }}
+          passphrase: ${{ secrets.VULTR_SSH_PASSPHRASE }}
+          fingerprint: ${{ secrets.VULTR_HOST_FINGERPRINT }}
+          envs: DEPLOY_COMMIT
+          command_timeout: 35m
+          script: |
+            bash -se <<'DEPLOY'
+            set -Eeuo pipefail
+            umask 077
+            phase=preflight
+            maintenance=false
+            failure() {
+              status=$?
+              trap - ERR
+              echo "Deployment failed during $phase; no database rollback was attempted." >&2
+              if [ "$maintenance" = true ]; then
+                echo "The application may be stopped or unhealthy. Inspect the backup and logs before recovery." >&2
+              fi
+              docker compose ps >&2 || true
+              docker compose logs --tail=80 app >&2 || true
+              exit "$status"
+            }
+            cd /opt/site-main
+            trap failure ERR
+            [[ "$DEPLOY_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+            if [ ! -w . ] || [ ! -w .git ] || [ ! -r .env.production ]; then
+              echo "Prepare /opt/site-main ownership and environment access for deploy; see docs/deployment.md." >&2
+              exit 1
+            fi
+            exec 9>.git/site-main-deploy.lock
+            flock -n 9
+            test -d data/blog
+            test -d data/assets
+            docker network inspect gateway > /dev/null
+            docker network inspect vultr_default > /dev/null
+            git diff --quiet
+            git diff --cached --quiet
+            if [ -n "$(git ls-files --others --exclude-standard)" ]; then
+              echo "Untracked files exist in the deployment repository; resolve them before deployment." >&2
+              exit 1
+            fi
+            previous_commit=$(git rev-parse HEAD)
+            app_id=$(docker compose ps -q app)
+            test -n "$app_id"
+            docker exec "$app_id" node -e '
+            const u = new URL(process.env.DATABASE_URL);
+            if (u.hostname !== "vultr-db-1" || u.pathname !== "/site_main") {
+              throw new Error("This workflow only backs up vultr-db-1/site_main.");
+            }'
+            old_image=$(docker inspect --format '{{.Image}}' "$app_id")
+            stamp=$(date -u +%Y%m%dT%H%M%SZ)-${DEPLOY_COMMIT:0:12}
+            docker image tag "$old_image" "site-main:rollback-$stamp"
+
+            phase=updating-code
+            git fetch origin "$DEPLOY_COMMIT"
+            git merge --ff-only "$DEPLOY_COMMIT"
+            test "$(git rev-parse HEAD)" = "$DEPLOY_COMMIT"
+            docker compose --profile tools config --quiet
+
+            phase=building
+            docker compose --profile tools build --pull app tools
+            mkdir -p backups
+            backup="backups/deploy-$stamp"
+            mkdir -m 700 "$backup"
+            printf '%s\n' "$previous_commit" > "$backup/previous-commit.txt"
+            printf '%s\n' "site-main:rollback-$stamp" > "$backup/previous-image.txt"
+
+            phase=backup
+            maintenance=true
+            docker compose stop app
+            docker exec vultr-db-1 sh -c '
+            export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
+            exec mysqldump --user=root --single-transaction --no-tablespaces --routines --triggers site_main
+            ' > "$backup/database.sql"
+            test -s "$backup/database.sql"
+            docker compose --profile tools run --rm --no-deps -T --user 0:0 tools \
+              tar -czf - -C /app/content blog -C /app/public assets > "$backup/files.tar.gz"
+            gzip -t "$backup/files.tar.gz"
+            echo "Backup completed: $backup"
+
+            phase=migrating
+            docker compose --profile tools run --rm --no-deps -T tools npm run db:migrate
+
+            phase=starting
+            docker compose up -d --no-deps --no-build --wait --wait-timeout 180 app
+            phase=checking-https
+            curl --fail --silent --show-error --max-time 20 --retry 3 --retry-delay 5 \
+              --output /dev/null https://suzutsuki.com/api/health
+            maintenance=false
+            docker compose ps
+            echo "Deployment completed: $DEPLOY_COMMIT"
+            DEPLOY

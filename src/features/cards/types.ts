@@ -11,6 +11,7 @@ export type CategoryMutation = { name: string } | { direction: "up" | "down" };
 
 export interface ContentCard {
   id: number;
+  position: number;
   kind: CardKind;
   title: string;
   username: string;
@@ -21,4 +22,4 @@ export interface ContentCard {
   categoryId: number | null;
 }
 
-export type CardInput = Omit<ContentCard, "id">;
+export type CardInput = Omit<ContentCard, "id" | "position">;

@@ -73,3 +73,12 @@ export function parseCategoryMutation(value: unknown): CategoryMutation {
 export function isCardKind(value: string): value is CardKind {
   return value === "connect" || value === "project" || value === "article";
 }
+
+export function parseCardMove(value: unknown): "up" | "down" {
+  if (!value || typeof value !== "object" || !("direction" in value) ||
+    (value.direction !== "up" && value.direction !== "down") ||
+    Object.keys(value).some(key => key !== "direction")) {
+    throw new CardInputError("卡片移动方向无效。");
+  }
+  return value.direction;
+}

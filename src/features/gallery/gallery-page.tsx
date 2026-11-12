@@ -133,7 +133,7 @@ export function GalleryPage({
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           {user && <Button component="label" variant="outlined" startIcon={<UploadIcon />}>
             上传图片
-            <input hidden type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"
+            <input hidden type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml,.svg"
               onChange={event => {
                 const file = event.target.files?.[0];
                 if (file) setOperation({ kind: "upload", file });
@@ -172,7 +172,7 @@ export function GalleryPage({
                 ...(view === "grid" ? { flex: 1, width: "100%", minHeight: 0 } : { width: 56, height: 56, flexShrink: 0 }),
               }}>
                 {entry.kind === "image" ? (
-                  <Image src={entry.url} alt={entry.name} fill loading="eager"
+                  <Image src={entry.url} alt={entry.name} fill loading="eager" unoptimized={/\.svg$/i.test(entry.name)}
                     sizes={view === "list" ? "56px" : "(max-width: 416px) calc(100vw - 16px), 240px"}
                     style={{ objectFit: "cover" }} />
                 ) : <Icon sx={{ fontSize: view === "grid" ? 48 : 32 }} color="primary" />}

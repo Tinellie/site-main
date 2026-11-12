@@ -252,3 +252,69 @@ docker compose up -d --wait --wait-timeout 120 app
 仅代码变更且数据库结构仍兼容时，可重新标记旧镜像为 `site-main:local`，再用 `docker compose up -d --no-build --force-recreate app` 恢复旧程序。数据库迁移不自动反向执行；不兼容变更需要停机恢复匹配的数据库与文件备份，不能只回退镜像。
 
 缓存卷可以重建，但 `data/blog`、`data/assets`、MySQL 和环境变量必须另行持久化及备份。`gateway` 和 MySQL 是已有共享服务，本项目不会自动管理它们的生命周期。
+
+## 11. GitHub Actions 自动部署
+
+[工作流](../.github/workflows/deploy.yml) 监听 `main`、`master` 推送，也可在 Actions → Deploy Site Main → Run workflow 手动执行；手动运行只允许这两个分支。它只负责本站，不部署 gateway 或 Comiket。
+
+### 首次启用前
+
+当前服务器已完成首次部署，但 `/opt/site-main` 的代码及 `.git` 属于 root。用服务器 root 或具备 sudo 权限的用户执行以下一次性准备：
+
+```bash
+sudo find /opt/site-main \
+  -path /opt/site-main/data -prune -o \
+  -path /opt/site-main/backups -prune -o \
+  -exec chown deploy:deploy {} +
+sudo chmod 600 /opt/site-main/.env.production
+sudo install -d -o deploy -g deploy -m 700 /opt/site-main/backups
+sudo -u deploy -H git -C /opt/site-main status --short
+sudo -u deploy -H git -C /opt/site-main ls-remote origin HEAD
+```
+
+此操作保留 `data/` 内应用 UID/GID 1000 的所有权，不要对整个项目无差别递归 chown。确认路径是当前部署目录，没有符号链接。最后一条验证 **deploy 用户自己的 SSH 凭据**能拉取仓库；只有 root 能拉取不够。不要关闭 Git 安全检查或使用 `safe.directory '*'`。
+
+`deploy` 必须能使用 Docker（当前已加入 docker 组）；Docker 权限等同于高权限服务器访问，只向可信部署密钥授予。工作流本身不执行 sudo、不修改文件所有权。
+
+在 **Tinellie/site-main → Settings → Secrets and variables → Actions** 配置：
+
+| Secret | 内容 |
+| --- | --- |
+| `VULTR_SSH_KEY` | 可登录服务器 `deploy` 用户的 SSH 私钥 |
+| `VULTR_SSH_PASSPHRASE` | 该私钥的口令；无口令密钥可不设置 |
+| `VULTR_HOST_FINGERPRINT` | 从可信渠道核实的服务器 SSH 主机公钥 SHA256 指纹 |
+
+与 gateway 使用相同命名，但仓库级 Secrets 不会自动共享。不要把秘密写入工作流或 Git。工作流目前固定使用 `139.180.203.201:22`、`deploy` 和 `/opt/site-main`。
+
+首次自动更新前确认：
+
+- 服务器仓库没有未提交或未忽略的临时文件；工作流不会覆盖或删除它们。
+- `.env.production`、数据目录、已有 app、`gateway` / `vultr_default` 网络已存在。
+- 网站连接 `vultr-db-1` 的 `site_main` 库；工作流会检查地址和库名，避免备份错误的库。
+- 数据库容器现有 `MYSQL_ROOT_PASSWORD` 可用于执行备份；工作流在容器内使用它，不打印密码、不增加 GitHub 数据库密码 Secret。
+- 磁盘有足够空间容纳构建、新旧镜像和完整备份。服务器约 2GB 内存，构建可能较慢，工作流给远程部署 35 分钟，不并发执行本站部署。
+
+### 每次推送后的流程
+
+1. 在 GitHub runner 安装依赖，执行 Lint、测试，并校验 Compose。
+2. 通过 SSH 检查权限、工作区、网络和现有应用，获取服务器文件锁。
+3. 为正在运行的旧镜像保留带时间戳的回退标签，将代码快进到本次提交。
+4. 构建 app 和 tools；构建失败时旧容器保持运行。
+5. 短暂停止本站 app，备份 `site_main` 及文章、历史、图片；不停止共享 MySQL 和其他网站。
+6. 执行已提交的数据库迁移，启动新版 app，等待容器健康并验证公网 HTTPS 健康端点。
+
+首次提交此工作流会立即触发，所以先准备权限和 Secrets，再推送。可在 Actions 中查看结果；不需要再手动执行一次部署。手动更新也应避免与工作流同时操作。
+
+### 备份与失败处理
+
+每次备份保存在 `backups/deploy-时间戳-提交前缀/`，目录和文件仅部署用户可访问：
+
+- `database.sql`：本站数据库，不含其他项目的库。
+- `files.tar.gz`：归档中包含 `blog/` 和 `assets/`，对应服务器 `data/blog/`、`data/assets/`。
+- `previous-commit.txt`、`previous-image.txt`：更新前的提交及镜像标签。
+
+工作流不会自动删除备份、清理旧镜像或上传数据库到 GitHub。定期加密转移备份到其他机器并核验恢复，监控剩余磁盘。
+
+构建前／构建中失败不会主动停止旧 app；**停止 app 后，备份或迁移失败会让网站保持停止**，并输出诊断日志，不自动启动可能与部分迁移不兼容的旧版本。启动或 HTTPS 检查失败也会令 Actions 失败，不代表数据库已回退。
+
+先查看失败阶段，再确认数据库是否变化及备份是否完整。只有确认结构兼容时才恢复旧镜像；不兼容时使用配套数据库和文件备份人工恢复。不要为修复失败执行 `down -v`、清空数据或强制重置 Git。

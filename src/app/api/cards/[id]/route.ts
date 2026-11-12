@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 import { authorizeWrite } from "@/lib/auth/session";
 import { authFailure, AuthError } from "@/lib/auth/http";
-import { deleteCard, saveCard } from "@/lib/cards/store";
-import { CardInputError, parseCardInput } from "@/features/cards/validation";
+import { deleteCard, moveCard, saveCard } from "@/lib/cards/store";
+import { CardInputError, parseCardInput, parseCardMove } from "@/features/cards/validation";
 
 async function mutate(request: Request, context: RouteContext<"/api/cards/[id]">, remove: boolean) {
   try { await authorizeWrite(request); } catch (error) { return authFailure(error); }
@@ -18,6 +18,9 @@ async function mutate(request: Request, context: RouteContext<"/api/cards/[id]">
     }
     let payload: unknown;
     try { payload = await request.json(); } catch { throw new CardInputError("请求体不是有效 JSON。"); }
+    if (payload && typeof payload === "object" && "direction" in payload) {
+      return NextResponse.json({ cards: await moveCard(Number(rawId), parseCardMove(payload)) });
+    }
     return NextResponse.json({ card: await saveCard(parseCardInput(payload), Number(rawId)) });
   } catch (error) {
     if (error instanceof CardInputError) return NextResponse.json({ message: error.message }, { status: 400 });

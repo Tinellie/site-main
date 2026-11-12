@@ -6,7 +6,7 @@ import ts from "typescript";
 const source = (await readFile(new URL("../src/features/cards/validation.ts", import.meta.url), "utf8"))
   .replace('"../../lib/images/resolve-image-path"', JSON.stringify(new URL("../src/lib/images/resolve-image-path.ts", import.meta.url).href));
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } });
-const { parseCardInput, parseCategoryName, parseCategoryMutation } = await import(`data:text/javascript;base64,${Buffer.from(compiled.outputText).toString("base64")}`);
+const { parseCardInput, parseCategoryName, parseCategoryMutation, parseCardMove } = await import(`data:text/javascript;base64,${Buffer.from(compiled.outputText).toString("base64")}`);
 
 const card = { kind: "connect", title: "Test", username: "user", link: "https://example.com", description: "", image: "", icon: "GitHub" };
 
@@ -61,4 +61,13 @@ test("category names and reordering actions are validated", () => {
   for (const input of [null, {}, { direction: "side" }, { direction: 1 }, { direction: "up", name: "New" }]) {
     assert.throws(() => parseCategoryMutation(input));
   }
+});
+
+test("card movement only accepts an isolated up or down action", () => {
+  for (const direction of ["up", "down"]) assert.equal(parseCardMove({ direction }), direction);
+  for (const value of [null, {}, "up", { direction: "side" }, { direction: 1 },
+    { direction: "up", title: "Ignored edit" }, { direction: "down", position: 100 }]) {
+    assert.throws(() => parseCardMove(value));
+  }
+  assert.equal(parseCardInput({ ...card, image: "logos/mark.svg" }).image, "logos/mark.svg");
 });
