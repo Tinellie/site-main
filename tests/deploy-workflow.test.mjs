@@ -44,6 +44,8 @@ case "$*" in
   'inspect --format {{.Image}} old-app') echo sha256:old;;
   'compose --profile tools build --pull app tools')
     if [ "$SCENARIO" = build-failure ]; then exit 17; fi;;
+  *'tools node -e'*)
+    if [ "$SCENARIO" = tools-preflight-failure ]; then exit 18; fi;;
   'exec vultr-db-1 sh -c'*)
     if [ "$SCENARIO" = backup-failure ]; then exit 19; fi
     echo '-- database fixture';;
@@ -88,7 +90,7 @@ test("deployment backs up before migration and only restarts the site app", () =
   assert.equal(status, 0, output);
   const commands = output.split("__COMMANDS__\n")[1].split("__FILES__")[0];
   const phases = [
-    "git fetch origin", "build --pull app tools", "compose stop app",
+    "git fetch origin", "build --pull app tools", "tools node -e", "compose stop app",
     "exec vultr-db-1 sh -c", "tar -czf -", "tools npm run db:migrate",
     "compose up -d --no-deps --no-build --wait", "curl --fail",
   ];
@@ -104,8 +106,8 @@ test("deployment backs up before migration and only restarts the site app", () =
   assert.doesNotMatch(commands, /compose down|compose restart|compose start|image prune|volume rm/);
 });
 
-test("dirty worktrees and failed builds leave the old application running", () => {
-  for (const scenario of ["dirty", "build-failure"]) {
+test("dirty worktrees, failed builds and unreadable tools leave the old application running", () => {
+  for (const scenario of ["dirty", "build-failure", "tools-preflight-failure"]) {
     const { status, output } = runDeployment(scenario);
     assert.notEqual(status, 0, scenario);
     assert.doesNotMatch(output, /docker compose stop app|tools npm run db:migrate|docker compose up/);

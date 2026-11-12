@@ -105,6 +105,19 @@ jobs:
 
             phase=building
             docker compose --profile tools build --pull app tools
+            phase=tools-preflight
+            docker compose --profile tools run --rm --no-deps --interactive=false -T tools node -e '
+            const fs = require("node:fs");
+            for (const file of ["package.json", "drizzle.config.ts", "drizzle/meta/_journal.json",
+              ...fs.readdirSync("drizzle").filter(name => name.endsWith(".sql")).map(name => `drizzle/${name}`)]) {
+              fs.accessSync(file, fs.constants.R_OK);
+            }
+            const mysql = require("mysql2/promise");
+            (async () => {
+              const db = await mysql.createConnection(process.env.DATABASE_URL);
+              try { await db.query("SELECT 1"); }
+              finally { await db.end(); }
+            })().catch(error => { console.error(error.code || error.name); process.exitCode = 1; });'
             mkdir -p backups
             backup="backups/deploy-$stamp"
             mkdir -m 700 "$backup"

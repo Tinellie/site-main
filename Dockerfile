@@ -5,7 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM dependencies AS source
-COPY . .
+COPY --chown=node:node . .
 
 FROM source AS tools
 RUN mkdir -p /opt/site-seed && cp -a public/assets/. /opt/site-seed/
