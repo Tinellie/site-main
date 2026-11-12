@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  Button, Chip, Paper,
+  Button, Card, Chip,
   Stack, TextField, Typography,
 } from "@mui/material";
 
@@ -26,7 +26,7 @@ export function PostFilterPanel({
   }
 
   return (
-    <Paper id="post-filter-panel" sx={{ p: 2 }}>
+    <Card id="post-filter-panel" sx={{ p: 2, flexShrink: 0 }}>
       <Stack spacing={2}>
         <Typography id="pfp-title" component="h2" variant="h6">
           Filters
@@ -104,6 +104,6 @@ export function PostFilterPanel({
           Reset filters
         </Button>
       </Stack>
-    </Paper>
+    </Card>
   );
 }

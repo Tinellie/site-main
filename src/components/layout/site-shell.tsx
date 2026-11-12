@@ -81,13 +81,16 @@ export function SiteShell({ children }: { children: ReactNode }) {
         display: "grid",
         gridTemplateRows: "auto minmax(0, 1fr)",
         gridTemplateColumns: "minmax(0, 1fr)",
-        "& > #site-header": { gridArea: "1 / 1 / 2 / 2" },
+        "& > #site-header": { gridArea: "1 / 1 / 2 / 2", zIndex: theme.zIndex.appBar },
         "&:has(#main-content[data-ignore-nav='true']) > :is(#ss-page, #ss-scrollbar)": {
           gridArea: "1 / 1 / 3 / 2",
         },
         "&:has(#main-content[data-transparent-nav='true']) > #site-header": {
           backgroundColor: alpha(theme.palette.background.paper, 0.6),
           backgroundImage: "none",
+        },
+        "&:has(#main-content[data-hide-scrollbar='true']) > #ss-scrollbar": {
+          display: "none",
         },
       })}
     >

@@ -9,12 +9,15 @@
 - `SiteShell`：全站外壳与正文滚动恢复，使用 React `ViewTransition` 统一实现 350ms 全屏交叉淡化，包含导航、正文、背景和 footer；不新增包装 DOM，尊重减少动态效果设置。
 - `AuthProvider`：维护客户端登录状态，在加载、窗口聚焦和每分钟查询服务端会话；写入权限仍由服务端独立判断。
 - `AuthControls`：footer 的登录、账号、退出和认证错误提示。
-- `PageScrollbar`：全站主滚动区的悬浮滚动条，支持拖动、轨道点击和键盘操作；DOM ID 为 `ss-scrollbar`，滑块 className 为 `psb-thumb`。不占正文宽度，弹窗打开时随正文滚动一起禁用。
+- `PageScrollbar`：全站主滚动区的悬浮滚动条，支持拖动、轨道点击和键盘操作；DOM ID 为 `ss-scrollbar`，滑块 className 为 `psb-thumb`。不占正文宽度，弹窗打开时随正文滚动一起禁用。`PageTemplate hideScrollbar`（默认 false）通过页面数据属性与外壳 CSS 隐藏它，不禁用滚动，也不影响局部滚动条；Home 已启用。
 - `PageTemplate`：main 页面骨架，页面标题和 children 容器；`maxWidth` 支持 MUI 断点、像素数字或 false，可按页面独立设置，默认保留普通页面 lg、分页页面全宽的行为。
 - `PageScreen`：固定一窗口高度的分页容器，独立背景、可选 `overlayColor` 背景遮罩、内部溢出滚动；作为 `PageTemplate paginated` 的直接子元素使用。`ignoreNav=false` 时首屏自动扣除实际导航高度，true 时正文与导航重叠。
 - `PageSection`（带小标题的页面分区，使用常见 Section 命名）：只接收 `title`、`children`，无额外外边距。
 - `ResponsiveCardGrid`（响应式卡片矩阵）：使用 MUI Grid，xs/sm/md/lg 分别每行 1/2/3/4 张。
 - `CardLinkAction`（可导航的卡片操作区）：复用 MUI CardActionArea 的 hover、focus 和点击涟漪，内链使用 Next Link，HTTP(S) 外链新标签页打开并设置 rel。
+- `CardRevealGroup` / `CardReveal`：以下 Connect、Works、Blog 主列表与推荐列表、Gallery 卡片集合的公共入场层（不在下方原业务层级逐一展开）。组不产生 DOM；每张卡片增加 `card-reveal` 占位层，图片并行加载及解码后按 DOM 顺序以 100ms 间隔淡入、上浮 12px，动画 320ms。失败或 8 秒超时显示警告并继续；隐藏卡片不可聚焦，减少动态效果时立即显示已就绪卡片。Gallery 预览弹窗不参与。
+  Works 的 Projects、Articles 分别使用独立组，分部间不等待，分部内保留顺序；数据请求仍共用 `CardCollection`。
+  入场前 320ms 卡片采用实心背景，抵达后以 500ms 淡入磨砂玻璃；减少动态效果时直接显示最终效果，不支持 backdrop-filter 时保持实心背景。样式统一位于 theme 的 `MuiCssBaseline`。
 
 ## 登录
 
@@ -30,53 +33,57 @@
 
 关键 ID：`home-intro`、`home-more`；可重复分页使用 className `page-screen`。首屏使用 `/images/backgrounds/bg1.JPG` 与 65% 黑色背景遮罩，中央以响应式大字显示 `siteConfig.title`，采用与导航标题相同的衬线字体和字重；第二屏不指定背景色，保持透明。背景图片通过 `cover` 居中裁剪，footer 排在全部分页之后。分页模式自动去掉模板外边距并视觉隐藏 h1，Home 每屏为完整窗口高度，背景延伸至导航后方并铺满两侧。导航背景不透明度为 60%，不改变文字、按钮透明度。
 
-## Connect：最多 6 层
+## Connect：最多 7 层
 
 页面使用 `PageBackground` 固定全屏显示 `/images/backgrounds/bg2.JPG`，叠加 60% 黑色遮罩；正文布局与导航设置不变。
 
 1. `ConnectPage`
 2. `PageTemplate`
-3. `SocialLinkGrid`（社交链接集合的矩阵容器）
+3. `CardCollection`（MySQL 卡片读取及认证编辑入口）
 4. `ResponsiveCardGrid`
-5. `SocialLinkCard`（卡片代表一个社交平台链接）
-6. `CardLinkAction`
+5. `EditableCard`（悬浮编辑／删除按钮，与链接互为兄弟元素）
+6. `SocialLinkCard`（卡片代表一个社交平台链接）
+7. `CardLinkAction`
 
 关键 DOM className：根 `social-link-card`；内部 `slc-action`、`slc-content`、`slc-identity`、`slc-icon`、`slc-text`、`slc-platform`、`slc-id`。
 
-`SocialLinkCard` 属性：`image?`（icons 内相对地址）、`iconName?`、`platform`、`socialId`、`href`。图片优先于图标；不提供图片与名称时使用 Language 图标。名称支持 Email、GitHub、Instagram、Language、LinkedIn、YouTube，通过静态导入避免打包完整图标库。
+`SocialLinkCard` 属性：`image?`（assets 内相对地址）、`iconName?`、`platform`、`socialId`、`href`。图片优先于图标；不提供图片与名称时使用 Language 图标。名称支持全部已安装 MUI 图标，通过 `/api/icons/[name]` 请求生成的 SVG，避免打包完整图标库。
 
-Connect 卡片固定高度为 140px，四周保留 8px 外边距。内容内边距与图文间距为 16px，头像为 56px。卡片采用磨砂玻璃背景：theme paper 底色 45% 不透明度、12px 背景模糊、140% 饱和度和细半透明边框，文字与图标不模糊；不支持 backdrop-filter 时使用 90% 不透明底色。
+Connect 卡片固定高度为 140px，四周保留 8px 外边距。内容内边距与图文间距为 16px，头像为 56px。磨砂玻璃背景由 theme 的 `MuiCard` 统一提供：paper 底色 45% 不透明度、12px 背景模糊、140% 饱和度和细半透明边框，文字与图标不模糊；不支持 backdrop-filter 时使用 90% 不透明底色。Works、Blog、推荐和 Gallery 卡片自动复用同一定义。
 
-测试常数 `debugSocialLinks` 位于 ConnectPage 下方，示例账号和地址不是网站主的真实资料。
+数据来自 `content_cards`。迁移一次性导入原示例，账号和地址不是网站主的真实资料。登录后启用 `EditableCard` 及右下角新增 FAB，通过 `CardEditor` 编辑；`IconPicker` 提供搜索和分页。图片上传与重命名规则见 README。
 
-## Works：最多 7 层
+## Works：最多 8 层
 
 Projects 分支：
 
 1. `WorksPage`
 2. `PageTemplate`
-3. `PageSection`：Projects
-4. `ProjectGrid`（项目作品矩阵）
-5. `ResponsiveCardGrid`
-6. `ProjectCard`（展示独立项目的作品卡片）
-7. `CardLinkAction`
+3. `CardCollection`
+4. `PageSection`：Projects
+5. `ResponsiveCardGrid`（项目作品矩阵）
+6. `EditableCard`
+7. `ProjectCard`（展示独立项目的作品卡片）
+8. `CardLinkAction`
 
 Articles 分支：
 
 1. `WorksPage`
 2. `PageTemplate`
-3. `PageSection`：Articles
-4. `ArticleList`（按顺序排列文章作品的列表）
-5. `ArticleCard`（区别于博客 PostCard 的文章作品卡片）
-6. `CardLinkAction`
+3. `CardCollection`
+4. `PageSection`：Articles
+5. `Stack.article-list`（按顺序排列文章作品的列表）
+6. `EditableCard`
+7. `ArticleCard`（区别于博客 PostCard 的文章作品卡片）
+8. `CardLinkAction`
 
-两个卡片共享 `WorkCardProps`：`image`、`title`、`description`、`href`。
+两个卡片共享 `WorkCardProps`：`image?`、`title`、`description`、`href`。图片为空时不渲染媒体层。
 
 项目卡片固定 320px 高，图片 176px 高；宽度根据矩阵响应式变化，不随内容变化。标题一行、描述最多三行，超出省略，并通过原生 HTML title 展示全文。文章作品卡片固定 88px 高，宽度随容器变化，背景图片 opacity 0.15，标题与描述均一行省略。
 
 关键 className：根 `page-section`、`responsive-card-grid`、`project-card`、`article-list`、`article-card`；内部使用 `ps-title`、`rcg-item`、`prc-action/image/content/title/description`、`ac-background/action/content/title/description`（斜杠表示多个后缀，实际 className 使用连字符）。
 
-`debugProjects`、`debugArticles` 均位于 WorksPage 下方。
+数据来自 `content_cards`，按 kind 分到 Projects／Articles。共用一个新增 FAB，`CardEditor` 类型选项决定新建／编辑的 Works 分组；所有写接口服务端校验认证。
 
 ## Blog：最多 7 层
 
@@ -96,6 +103,8 @@ Articles 分支：
 3. `BlogExplorer`
 4. `BlogSidebar`（筛选与推荐的侧栏）
 5. `PostFilterPanel`（搜索、日期和标签筛选面板）
+
+`PostFilterPanel` 根节点为 `Card`，与文章卡片共用 theme 磨砂玻璃样式，仅局部设置 16px 内边距；禁止 flex 收缩，避免侧栏高度受限时筛选控件被卡片裁剪。普通 Dialog 和 Popover 也复用相同 theme 样式；Gallery 透明全屏预览除外。
 
 侧栏推荐分支：
 
@@ -140,6 +149,6 @@ Recommended 中 `compact=true` 的 PostCard 固定高度为 88px；封面区域�
 - `@images/icons/proj-icon.png` → `/images/icons/proj-icon.png`
 - 社交卡片 `image="proj-icon.png"` → `/images/icons/proj-icon.png`
 
-`resolveImagePath` 会拒绝绝对路径、协议地址、空路径片段、`.`、`..`、反斜杠和编码后的越级路径。图标接口只允许 icons 内相对路径。
+`resolveImagePath` 会拒绝绝对路径、协议地址、空路径片段、`.`、`..`、反斜杠和编码后的越级路径。其 `directory="icons"` 模式只允许 icons 内相对路径；MUI SVG 接口则仅接受已生成目录中的图标名称。
 
 这只是受限 URL 索引，不是访问权限系统：public 内资源本来就是公开的，不应放凭据或私密文件。将来处理上传文件还需要独立的服务端文件校验与鉴权。

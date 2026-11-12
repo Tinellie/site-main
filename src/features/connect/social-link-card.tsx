@@ -1,24 +1,19 @@
 "use client";
 
 import {
-  alpha, Avatar,
+  Avatar,
   Card, CardContent,
   Stack, Typography,
 } from "@mui/material";
 
-import {
-  Email, Language,
-  GitHub, Instagram, LinkedIn, YouTube,
-} from "@mui/icons-material";
+import { Language } from "@mui/icons-material";
 
 import { CardLinkAction } from "@/components/cards/card-link-action";
-import { resolveImagePath } from "@/lib/images/resolve-image-path";
-
-const socialIcons = { Email, GitHub, Instagram, Language, LinkedIn, YouTube };
+import { resolveCardImagePath } from "@/features/cards/image-path";
 
 export interface SocialLinkCardProps {
   image?: string;
-  iconName?: keyof typeof socialIcons;
+  iconName?: string;
 
   platform: string;
   socialId: string;
@@ -32,25 +27,14 @@ export function SocialLinkCard({
   socialId,
   href,
 }: SocialLinkCardProps) {
-  const Icon = iconName ? socialIcons[iconName] : Language;
-
   return (
     <Card
       className="social-link-card"
-      sx={(theme) => ({
+      sx={{
         borderRadius: 2,
         m: 1,
         height: 140,
-        backgroundColor: alpha(theme.palette.background.paper, 0.9),
-        backgroundImage: "none",
-        border: "1px solid",
-        borderColor: alpha(theme.palette.common.white, 0.15),
-        "@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)))": {
-          backgroundColor: alpha(theme.palette.background.paper, 0.45),
-          backdropFilter: "blur(12px) saturate(140%)",
-          WebkitBackdropFilter: "blur(12px) saturate(140%)",
-        },
-      })}
+      }}
     >
       <CardLinkAction
         href={href}
@@ -71,11 +55,11 @@ export function SocialLinkCard({
           >
             <Avatar
               className="slc-icon"
-              src={image ? resolveImagePath(image, "icons") : undefined}
+              src={image ? resolveCardImagePath(image) : `/api/icons/${iconName || "Language"}`}
               alt={platform}
               sx={{ width: 56, height: 56 }}
             >
-              {image ? null : <Icon fontSize="large" />}
+              <Language fontSize="large" />
             </Avatar>
 
             <Stack className="slc-text" sx={{ minWidth: 0 }}>

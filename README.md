@@ -2,7 +2,7 @@
 
 基于 TypeScript、React、Next.js App Router、MUI、MySQL、Drizzle ORM、Vditor 和 gray-matter。
 
-当前包含 Home、Connect、Works、Blog、Gallery 页面；Home 为两屏背景示例，Connect、Works 为测试数据，Blog 已接入本地 Markdown 存储与编辑流程。`/login` 支持本地管理员账号密码登录；游客只读，管理员可编辑文章、上传和重命名图片。
+当前包含 Home、Connect、Works、Blog、Gallery 页面；Home 为两屏背景示例，Connect、Works 卡片由 MySQL 保存，Blog 已接入本地 Markdown 存储与编辑流程。`/login` 支持本地管理员账号密码登录；游客只读，管理员可管理卡片、编辑文章、上传和重命名图片。
 
 组件调用层级、属性、测试常数、图片索引与关键 DOM 标识见 [docs/component-map.md](docs/component-map.md)。
 
@@ -16,6 +16,8 @@
 - `npm start`：启动生产构建。
 - `npm run test:auth`：运行认证基础单元测试。
 - `npm run test:blog`：运行 Blog 时间展示格式单元测试。
+- `npm run test:cards`：运行卡片输入验证单元测试。
+- `npm run test:theme`：验证统一磨砂玻璃样式、兼容回退及全屏预览豁免。
 
 Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.js 24。
 
@@ -38,6 +40,8 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 | [src/lib/markdown/parse-markdown.ts](src/lib/markdown/parse-markdown.ts) | gray-matter 解析可信 Markdown 的 front matter |
 | [src/db/index.ts](src/db/index.ts) | 仅服务端可用、懒初始化的 MySQL 连接池 |
 | [src/db/schema/posts.ts](src/db/schema/posts.ts) | 文章表示例定义与推断类型 |
+| [src/db/schema/cards.ts](src/db/schema/cards.ts) | Connect／Works 的 content_cards 表 |
+| [src/features/cards](src/features/cards) | 卡片列表、认证编辑窗、悬浮操作与图标选择器 |
 | [drizzle.config.ts](drizzle.config.ts) | MySQL 迁移配置 |
 
 ## 导航与页面模板
@@ -50,6 +54,7 @@ Node.js 要求以安装的 Next.js 版本为准；本项目初始化使用 Node.
 
 - `title`：顶部居中的 h1，空字符串或未提供时不渲染。
 - `hideTitle`：默认 false；通过 MUI `visuallyHidden` 保留 DOM 中的 h1，但不占正常布局空间。它不负责鉴权或后台数据。
+- `hideScrollbar`：默认 false；true 时隐藏当前页面右侧的主滚动条，滚轮、触摸、键盘滚动及历史位置恢复不变。只控制 `PageScrollbar`，不影响分页内部、侧栏或弹窗的局部滚动条。Home 已启用，例如 `<PageTemplate title="Home" hideScrollbar>`；切换到未启用的页面时自动恢复。
 - `children`：页面内容。
 - `removeMargin`：默认 false；main 使用 MUI Container 居中，默认最大宽度为 lg（1200px），通常左右留白各 48px。可用窗口宽度在 336–416px 时内容保持 320px，留白从 8px 增至 48px；小于 336px 时保持各 8px 留白，内容随窗口缩小以避免溢出。内容上下外边距为 24px。设为 true 时去掉这些留白，默认取消最大宽度；不会自动隐藏导航或移除标题本身的顶部间距。
 - `maxWidth`：按当前 `PageTemplate` 设置正文容器最大宽度，支持 MUI 断点 `"xs" | "sm" | "md" | "lg" | "xl"`、像素数字（如 `maxWidth={960}`）或 `false`（无最大宽度限制）。默认普通页面为 `"lg"`，`removeMargin` 或 `paginated` 页面为 `false`；显式设置优先于这些默认值。正文仍居中且随窄窗口收缩，原有留白独立保留。该参数不作用于独立的 `PageScreen`，分页页面显式设置它会同时限制分页背景的宽度。
@@ -107,7 +112,15 @@ import { PageTemplate } from "@/components/layout/page-template";
 
 三个参数均可选，与 `PageScreen` 同名参数含义一致：图片居中 `cover` 铺满，`backgroundColor` 为底色，`overlayColor` 为背景上方的颜色遮罩，不改变正文透明度。背景覆盖导航后方和正文两侧，导航是否透出背景仍由 `transparentNav` 决定；不受 `maxWidth`、正文留白或 `ignoreNav` 影响。正文中的不透明卡片或分页背景仍会遮住它。
 
-通过 MUI `Portal` 将背景挂到 `SiteShell`，避开正文尺寸容器与裁剪边界；外壳使用隔离层叠上下文，保证背景在正文、导航、滚动条和弹窗下方，同时不落到 body 底色后面。背景不接收点击、不参与无障碍阅读，切换页面卸载后自动移除，并参与全屏路由交叉淡化。不使用该组件的页面保持不变。
+通过 MUI `Portal` 将背景挂到 `SiteShell`，避开正文尺寸容器与裁剪边界；外壳使用隔离层叠上下文，保证背景在正文、导航、滚动条和弹窗下方，同时不落到 body 底色后面。背景不接收点击、不参与无障碍阅读，切换页面卸载后自动移除。不使用该组件的页面保持不变。
+
+`PageBackground` 和 `PageScreen` 共用 `BackgroundMedia`，本地静态背景使用 `next/image` 按视口宽度生成响应式压缩图片，保留居中裁剪和独立遮罩；远程 URL 与 `/api/` 图片仍直连，避免改变远程配置或可替换图片的缓存行为。Works 卡片图片使用异步解码，入场组统一启动图片加载。卡片编辑器在打开时才加载，访客无需下载编辑表单和图标选择器代码。
+
+Connect、Works、Blog（含推荐列表）与 Gallery 卡片共用 `CardRevealGroup` / `CardReveal`。卡片初始透明但保留尺寸、不可聚焦；组内图片并行加载并等待解码，卡片按实际 DOM 顺序每隔 100ms 开始 320ms 淡入及 12px 上浮。无图卡片直接就绪；图片失败或等待超过 8 秒时显示警告并放行后续卡片。组内图片改为 eager，避免隐藏卡片被原生懒加载阻塞；Gallery 全屏预览不受影响。系统开启“减少动态效果”时取消位移、动画与入场间隔。筛选、排序和 Gallery 视图变化会重新执行入场，卸载时清理监听和计时器。
+
+Works 的 Projects 与 Articles 各自使用独立入场组，分部内按顺序显示，分部之间不互相等待图片或动画；数据仍通过同一次 Works 卡片请求读取。
+
+卡片采用两阶段背景：320ms 上浮淡入期间保持实心 paper 底色，抵达位置后再用 500ms 将底色过渡到 45% 不透明的磨砂玻璃。玻璃在实心底色后方准备，避免外层透明度动画结束时模糊效果突现。减少动态效果时直接使用最终玻璃样式；不支持 backdrop-filter 时保持实心背景。该规则只作用于 `card-reveal` 内的卡片，不改变弹窗或弹出菜单。
 
 页面共用的单例节点使用 ID，导航按钮和可重复挂载的编辑器使用 className。Provider、路由和页面组件直接复用子组件的 DOM，不为添加标识额外创建包装元素。
 
@@ -115,7 +128,9 @@ import { PageTemplate } from "@/components/layout/page-template";
 
 切换路径时正文回到顶部，带锚点的链接保留 Next.js 的定位行为；浏览器前进、后退恢复当前会话中按路径记录的正文滚动位置。滚动恢复在布局阶段完成，早于过渡新画面快照；只在当前 URL 与监听路径一致时保存位置，避免切页时的自动归零覆盖旧记录。
 
-根布局使用 React `ViewTransition` 包裹整个 `SiteShell`，站内路由切换时导航、正文和背景一起进行 350ms 的交叉淡化，不额外创建 DOM、不重挂载外壳或延迟跳转。动画时长在 theme 的 `::view-transition-*(site-page)` 中配置；启用系统“减少动态效果”时动画时长为零。不支持 View Transitions API 的浏览器正常即时切换；普通同步交互不会触发页面过渡。
+根布局目前直接渲染 `SiteShell`，页面过渡动画已停用。全局 `src/app/loading.tsx` 在等待路由内容超过 3 秒后才显示加载状态，之前隐藏提示及其无障碍内容，共用导航保持可交互；提前加载完成时提示随 fallback 卸载，不会闪现。该延迟不依赖客户端水合，且不受减少动态效果设置影响；卡片的客户端请求继续使用自己的加载、错误与重试提示。
+
+性能评估应使用 `npm run build` 后的 `npm start`；`npm run dev` 包含按需编译、HMR 和开发工具，首次访问尚未编译的路由会更慢。首次请求某个图片尺寸时也需要生成优化结果，后续请求复用图片缓存。
 
 透明 footer 位于正文滚动区末尾，左下角提供 `/login` 登录入口，避开右下角的文章新建和编辑按钮；内容不足一屏时由 main 的弹性高度将其推至底部，超过一屏时排在内容之后，不固定覆盖正文。
 
@@ -125,7 +140,7 @@ import { PageTemplate } from "@/components/layout/page-template";
 
 优先在 theme 中配置可复用的颜色、字体、间距和组件默认行为；局部布局使用 `sx`。没有额外的应用样式表，也没有 Tailwind。
 
-Card 与 Paper 使用 MUI 默认外观，不设置 outlined variant；各页面保留自己的尺寸与间距。标签和输入框的 variant 独立设置。
+磨砂玻璃外观统一定义在 `src/theme/theme.ts` 的 `glassSurface`，通过 `MuiCard`、`MuiPopover.paper` 和普通 `MuiDialog.paper` 自动应用：paper 底色 45% 不透明度、12px 模糊、140% 饱和度、细半透明边框，并移除默认背景渐变。不支持 backdrop-filter 时回退到 90% 不透明底色。Connect、Works、Blog、推荐及 Gallery 卡片共用该定义，各页面只保留自己的尺寸与间距；Blog 筛选面板也使用 Card。普通 Paper、导航以及全屏 Dialog 不受影响，Gallery 全屏预览继续透明。标签和输入框的 variant 独立设置。
 
 MUI 组件、样式工具和类型统一从 `@mui/material` 命名导入，图标从 `@mui/icons-material` 命名导入，可使用 `Add as AddIcon` 等别名。同一模块的导入尽量合并，长列表按相关系列分组换行，不要求每项独占一行。其他库仅在公共导出兼容时采用相同方式；专用子模块和 CSS 副作用导入保持独立。
 
@@ -149,9 +164,9 @@ Vditor 组件内部引入其官方必需样式，这不属于应用布局样式�
 ### 首次设置
 
 1. 将 `.env.example` 复制为 `.env.local`，配置真实 `DATABASE_URL` 和 `AUTH_ORIGIN`。本地默认来源为 `http://localhost:3000`；如果使用其他端口，应同步修改。来源不能带路径或末尾斜杠。
-2. 在专用数据库执行 `npm run db:migrate`。已提供初始迁移，包含原有 posts 示例表及三个认证表；如果曾手动建表，应先核对现有结构及迁移记录，不要直接在有冲突的数据库执行。
+2. 在专用数据库执行 `npm run db:migrate`。已有迁移包含 posts 示例表、三个认证表及 content_cards 卡片表；如果曾手动建表，应先核对现有结构及迁移记录，不要直接在有冲突的数据库执行。
 3. 在交互式终端执行 `npm run auth:admin -- admin`，输入并确认 9–128 字符的独立密码（不回显）。账号限 3–64 位英文字母、数字、下划线、连字符，统一转为小写。Node.js 需支持 `--experimental-strip-types`（22.6+；建议使用项目推荐的 Node.js 24）。
-4. 重启应用，在 footer 点击“登录”。没有数据库配置时游客仍可阅读，但登录会明确返回服务不可用，写操作不会放行。
+4. 重启应用，在 footer 点击“登录”。没有数据库配置时本地文章仍可阅读；卡片加载和登录会明确提示服务不可用，写操作不会放行。
 
 生产环境将 `AUTH_ORIGIN` 设为真实 HTTPS 来源，例如 `https://example.com`，由部署平台或反向代理配置 HTTPS。生产登录接口拒绝 HTTP 来源，Cookie 自动启用 `Secure`；本地使用 `npm run dev` 和 HTTP。应用不会替你安装证书或开放数据库端口。
 
@@ -173,6 +188,21 @@ Vditor 组件内部引入其官方必需样式，这不属于应用布局样式�
 - 过期会话在下次成功登录时清理，过期限流记录在登录尝试时清理；过期校验不依赖清理是否执行。
 - `npm run test:auth` 验证密码、账号规范、令牌哈希、站内跳转。
 - `npm run test:auth:integration` 需显式配置 `AUTH_TEST_DATABASE_URL`（仅接受本机独立的 `auth_validation` 数据库）、`AUTH_TEST_BASE_URL` 和与测试服务匹配的 `AUTH_TEST_ORIGIN`；缺失时跳过。测试服务与测试脚本必须指向同一独立数据库，先应用迁移。生产构建可在本机 HTTP 传输上以显式 HTTPS Origin 和 Cookie 测服务端，不代表浏览器支持 HTTP 生产登录。测试包含真实文章／上传／重命名操作并清理自己创建的文件，不要对实际发布服务运行。
+
+## Connect 与 Works 卡片管理
+
+先备份数据库，然后执行 `npm run db:migrate` 应用 `0001_equal_ultron.sql`。它创建 `content_cards`，并一次性导入之前的 6 个 Connect、4 个 Project、2 个 Article 示例；不是站主的真实资料。数据库不可用时显示错误和重试，不回退到静态测试数据。
+
+- 游客只读。登录后，悬浮／键盘聚焦卡片显示右上角圆形编辑和删除按钮；触摸设备直接显示。删除需要确认。
+- 右下角加号打开磨砂玻璃编辑窗。Works 共用一个加号，通过“类型”选择 Project 或 Article，已有 Works 卡片也可切换这两种类型。
+- Works 字段为 Title、Link、Description、Image；Connect 为 Title、UserName、Link、Icon、Image。Image 为 `public/assets` 内的相对路径，例如 `folder/photo.png`，不带 `/assets/` 前缀；Connect 的 Image 优先于 Icon。
+- Icon 点选器可按英文名称搜索完整的已安装 MUI 图标库，分页加载 SVG。`npm run dev`／`npm run build` 自动运行 `scripts/generate-card-icons.mjs`，在 `.generated/mui-icons.json` 缓存全量图标；不把全库 JS 发给浏览器。standalone 构建包含该缓存，直接调用 `next` 而非 npm 脚本时应先手动运行生成脚本。
+- 图片支持 PNG、JPEG、GIF、WebP、AVIF，最大 10MB。上传自动生成无冲突文件名；保存前修改 Image 路径，会移动／重命名**本次上传**的图片（可使用子目录），同名目标返回冲突、不覆盖。修改原有卡片的图片路径仅更换引用，不会移动共享图片。
+- 卡片与预览统一通过公开的 `/api/cards/assets/[...path]` 读取图片；数据库仍保存 assets 相对路径。新上传／重命名的文件无需重启生产服务即可显示，不依赖 Next.js 启动时的 public 文件索引。
+- 取消编辑、重复上传或删除卡片不会清理图片；未引用文件可在确认无其他用途后人工删除。部署时 `public/assets` 必须可写并持久化，连同 MySQL 一起备份，多实例需共享存储。
+- 保存失败保留草稿；会话过期可在另一标签登录后重试。服务器对全部增删改、上传、移动接口独立校验登录和 Origin。
+
+`npm run test:cards:integration` 需配置 `CARDS_TEST_DATABASE_URL`（仅接受本机独立 `auth_validation` 数据库）、`CARDS_TEST_BASE_URL`、`CARDS_TEST_ORIGIN` 和 `CARDS_TEST_ASSET_ROOT`（测试应用的绝对 `public/assets` 路径）。测试应用须连接同一独立数据库并预先应用迁移；测试会创建账号、卡片、图片并清理自己创建的数据，不应指向实际发布服务。
 
 ## 编辑器与 Markdown
 

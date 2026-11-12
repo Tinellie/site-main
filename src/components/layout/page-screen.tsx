@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 import { Box, type SxProps, type Theme } from "@mui/material";
 
+import { BackgroundMedia } from "@/components/layout/background-media";
+
 export interface PageScreenProps {
   id?: string;
   label?: string;
@@ -23,11 +25,6 @@ export function PageScreen({
   children,
   sx = [],
 }: PageScreenProps) {
-  const backgroundLayers = [
-    overlayColor && `linear-gradient(${overlayColor}, ${overlayColor})`,
-    backgroundImage && `url(${JSON.stringify(backgroundImage)})`,
-  ].filter(Boolean).join(", ");
-
   return (
     <Box
       component="section"
@@ -37,6 +34,8 @@ export function PageScreen({
       tabIndex={0}
       sx={[
         {
+          position: "relative",
+          isolation: "isolate",
           height: "100dvh",
           minHeight: 0,
           boxSizing: "border-box",
@@ -44,14 +43,11 @@ export function PageScreen({
           overflowWrap: "anywhere",
           p: 3,
           backgroundColor,
-          backgroundImage: backgroundLayers || undefined,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
+      <BackgroundMedia backgroundImage={backgroundImage} overlayColor={overlayColor} />
       {children}
     </Box>
   );

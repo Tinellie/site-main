@@ -6,14 +6,16 @@ import { siteConfig } from "@/config/site";
 
 export function HomePage() {
   return (
-    <PageTemplate title="Home" paginated ignoreNav transparentNav>
+    <PageTemplate title="Home" paginated ignoreNav transparentNav hideScrollbar>
       <PageScreen
         id="home-intro"
         label="首页第一屏"
         backgroundImage="/images/backgrounds/bg1.JPG"
         backgroundColor="#18232e"
         overlayColor="rgba(0, 0, 0, 0.3)"
-        sx={{ display: "grid", placeItems: "center" }}
+        sx={{ 
+          display: "grid", placeItems: "center",
+        }}
       >
         <Typography
           component="h2"
@@ -31,11 +33,11 @@ export function HomePage() {
           {siteConfig.title}
         </Typography>
       </PageScreen>
-      <PageScreen
+      {/* <PageScreen
         id="home-more"
         label="首页第二屏"
       >
-      </PageScreen>
+      </PageScreen> */}
     </PageTemplate>
   );
 }

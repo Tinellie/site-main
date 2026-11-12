@@ -1,4 +1,5 @@
 import { ResponsiveCardGrid } from "@/components/cards/responsive-card-grid";
+import { CardReveal, CardRevealGroup } from "@/components/cards/card-reveal";
 import {
   SocialLinkCard,
   type SocialLinkCardProps,
@@ -10,13 +11,15 @@ export function SocialLinkGrid({
   items: readonly SocialLinkCardProps[];
 }) {
   return (
+    <CardRevealGroup>
     <ResponsiveCardGrid
       className="social-link-grid"
       itemSize={{ xs: 12, sm: 6, md: 4 }}
     >
       {items.map((item) => (
-        <SocialLinkCard key={item.platform} {...item} />
+        <CardReveal key={item.platform}><SocialLinkCard {...item} /></CardReveal>
       ))}
     </ResponsiveCardGrid>
+    </CardRevealGroup>
   );
 }
