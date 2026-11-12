@@ -15,6 +15,13 @@
       "when": 1794329954625,
       "tag": "0001_equal_ultron",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1794444846773,
+      "tag": "0002_big_ego",
+      "breakpoints": true
     }
   ]
 }

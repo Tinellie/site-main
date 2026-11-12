@@ -3,7 +3,7 @@ import "server-only";
 import { asc, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { contentCards } from "@/db/schema";
+import { connectCategories, contentCards } from "@/db/schema";
 import type { CardInput, CardSection } from "@/features/cards/types";
 import { requireEditor } from "@/lib/auth/session";
 import { AuthError } from "@/lib/auth/http";
@@ -18,18 +18,24 @@ export async function listCards(section: CardSection) {
 export async function saveCard(input: CardInput, id?: number) {
   await requireEditor();
   if (!(await hasMuiIcon(input.icon))) throw new AuthError("MUI 图标不存在。", 400);
-  const db = getDb();
-  if (id !== undefined) {
-    const [existing] = await db.select().from(contentCards).where(eq(contentCards.id, id)).limit(1);
-    if (!existing) throw new AuthError("卡片不存在或已删除。", 404);
-    if ((existing.kind === "connect") !== (input.kind === "connect")) {
-      throw new AuthError("不能将 Connect 卡片转换为 Works 卡片。", 400);
+  return getDb().transaction(async (db) => {
+    if (input.categoryId !== null) {
+      const [category] = await db.select().from(connectCategories)
+        .where(eq(connectCategories.id, input.categoryId)).limit(1).for("update");
+      if (!category) throw new AuthError("分类不存在或已删除，请重新选择分类。", 400);
     }
-    await db.update(contentCards).set(input).where(eq(contentCards.id, id));
-    return { ...input, id };
-  }
-  const [created] = await db.insert(contentCards).values(input).$returningId();
-  return { ...input, id: created.id };
+    if (id !== undefined) {
+      const [existing] = await db.select().from(contentCards).where(eq(contentCards.id, id)).limit(1);
+      if (!existing) throw new AuthError("卡片不存在或已删除。", 404);
+      if ((existing.kind === "connect") !== (input.kind === "connect")) {
+        throw new AuthError("不能将 Connect 卡片转换为 Works 卡片。", 400);
+      }
+      await db.update(contentCards).set(input).where(eq(contentCards.id, id));
+      return { ...input, id };
+    }
+    const [created] = await db.insert(contentCards).values(input).$returningId();
+    return { ...input, id: created.id };
+  });
 }
 
 export async function deleteCard(id: number) {

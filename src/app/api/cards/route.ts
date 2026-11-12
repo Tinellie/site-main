@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authorizeWrite } from "@/lib/auth/session";
 import { authFailure, AuthError } from "@/lib/auth/http";
 import { listCards, saveCard } from "@/lib/cards/store";
+import { listCategories } from "@/lib/cards/categories";
 import { CardInputError, parseCardInput } from "@/features/cards/validation";
 
 export async function GET(request: Request) {
@@ -11,7 +12,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "页面类型无效。" }, { status: 400 });
   }
   try {
-    return NextResponse.json({ cards: await listCards(section) }, { headers: { "Cache-Control": "no-store" } });
+    const [cards, categories] = await Promise.all([
+      listCards(section), section === "connect" ? listCategories() : Promise.resolve([]),
+    ]);
+    return NextResponse.json({ cards, categories }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Card listing failed:", error);
     return NextResponse.json({ message: "卡片加载失败，请检查数据库迁移。" }, { status: 503 });

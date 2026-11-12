@@ -14,7 +14,8 @@ import { PageSection } from "@/components/layout/page-section";
 import { useAuth } from "@/features/auth/auth-provider";
 import { cardRequest } from "@/features/cards/card-api";
 import { EditableCard } from "@/features/cards/editable-card";
-import type { CardSection, ContentCard } from "@/features/cards/types";
+import { CategoryActions } from "@/features/cards/category-actions";
+import type { CardSection, ConnectCategory, ContentCard } from "@/features/cards/types";
 import { SocialLinkCard } from "@/features/connect/social-link-card";
 import { ArticleCard } from "@/features/works/article-card";
 import { ProjectCard } from "@/features/works/project-card";
@@ -27,6 +28,7 @@ const CardEditor = dynamic(
 export function CardCollection({ section }: { section: CardSection }) {
   const { user } = useAuth();
   const [cards, setCards] = useState<ContentCard[]>([]);
+  const [categories, setCategories] = useState<ConnectCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<ContentCard | null | undefined>();
@@ -37,8 +39,13 @@ export function CardCollection({ section }: { section: CardSection }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    cardRequest<{ cards: ContentCard[] }>(`/api/cards?section=${section}`, { signal: controller.signal })
-      .then(result => { if (!controller.signal.aborted) setCards(result.cards); })
+    cardRequest<{ cards: ContentCard[]; categories: ConnectCategory[] }>(`/api/cards?section=${section}`, { signal: controller.signal })
+      .then(result => {
+        if (!controller.signal.aborted) {
+          setCards(result.cards);
+          setCategories(result.categories);
+        }
+      })
       .catch(error => {
         if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "卡片加载失败。");
       })
@@ -58,6 +65,16 @@ export function CardCollection({ section }: { section: CardSection }) {
           : card.kind === "project" ? <ProjectCard {...props} /> : <ArticleCard {...props} />}
       </EditableCard>
       </CardReveal>
+    );
+  }
+
+  function renderConnectCards(categoryId: number | null) {
+    return (
+      <CardRevealGroup>
+        <ResponsiveCardGrid className="social-link-grid" itemSize={{ xs: 12, sm: 6, md: 4 }}>
+          {cards.filter(card => card.categoryId === categoryId).map(renderCard)}
+        </ResponsiveCardGrid>
+      </CardRevealGroup>
     );
   }
 
@@ -81,11 +98,21 @@ export function CardCollection({ section }: { section: CardSection }) {
         setLoading(true); setError(""); setRetry(value => value + 1);
       }}>重试</Button>}>{error}</Alert>}
       {!loading && !error && (section === "connect" ? (
-        <CardRevealGroup key="connect">
-          <ResponsiveCardGrid className="social-link-grid" itemSize={{ xs: 12, sm: 6, md: 4 }}>
-            {cards.map(renderCard)}
-          </ResponsiveCardGrid>
-        </CardRevealGroup>
+        <Stack id="connect-sections" spacing={4}>
+          {renderConnectCards(null)}
+          {categories.map((category, index) => (
+            <PageSection key={category.id} title={category.name} actions={user && (
+              <CategoryActions category={category} first={index === 0} last={index === categories.length - 1}
+                onChanged={(updated, deletedId) => {
+                  setCategories(updated);
+                  if (deletedId !== undefined) setCards(previous => previous.map(card =>
+                    card.categoryId === deletedId ? { ...card, categoryId: null } : card));
+                }} />
+            )}>
+              {renderConnectCards(category.id)}
+            </PageSection>
+          ))}
+        </Stack>
       ) : (
         <Stack id="wo-sections" spacing={4}>
           <PageSection title="Projects">
@@ -107,7 +134,11 @@ export function CardCollection({ section }: { section: CardSection }) {
           sx={{ position: "fixed", right: 24, bottom: 24 }}><Add /></Fab>
       )}
       {editing !== undefined && (
-        <CardEditor card={editing} section={section} onClose={() => setEditing(undefined)}
+        <CardEditor card={editing} section={section} categories={categories} onClose={() => setEditing(undefined)}
+          onCategorySaved={category => {
+            setCategories(previous => [...previous, category]);
+            setEditing(undefined);
+          }}
           onSaved={saved => {
             setCards(previous => editing
               ? previous.map(card => card.id === saved.id ? saved : card)

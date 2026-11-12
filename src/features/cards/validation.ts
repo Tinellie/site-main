@@ -1,4 +1,4 @@
-import type { CardInput, CardKind } from "./types";
+import type { CardInput, CardKind, CategoryMutation } from "./types";
 import { resolveImagePath } from "../../lib/images/resolve-image-path";
 
 export class CardInputError extends Error {}
@@ -39,10 +39,35 @@ export function parseCardInput(value: unknown): CardInput {
   }
   const icon = field("icon", 100);
   if (!/^[A-Z][A-Za-z0-9]*$/.test(icon)) throw new CardInputError("请选择有效的 MUI 图标。");
+  const categoryId: unknown = Reflect.get(value, "categoryId") ?? null;
+  if (categoryId !== null && (typeof categoryId !== "number" ||
+    !Number.isInteger(categoryId) || categoryId < 1 || categoryId > 2147483647)) {
+    throw new CardInputError("分类编号无效。");
+  }
+  if (kind !== "connect" && categoryId !== null) throw new CardInputError("Works 卡片不支持 Connect 分类。");
   return {
     kind, title: field("title", 200, true), username: field("username", 200),
-    link, description: field("description", 10000), image, icon,
+    link, description: field("description", 10000), image, icon, categoryId,
   };
+}
+
+export function parseCategoryName(value: unknown): string {
+  if (!value || typeof value !== "object" || !("name" in value) ||
+    typeof value.name !== "string" || !value.name.trim() || value.name.trim().length > 100) {
+    throw new CardInputError("Category Name 不能为空且不能超过 100 个字符。");
+  }
+  return value.name.trim();
+}
+
+export function parseCategoryMutation(value: unknown): CategoryMutation {
+  if (!value || typeof value !== "object") throw new CardInputError("分类操作无效。");
+  if ("direction" in value) {
+    if ("name" in value || (value.direction !== "up" && value.direction !== "down")) {
+      throw new CardInputError("分类移动方向无效。");
+    }
+    return { direction: value.direction };
+  }
+  return { name: parseCategoryName(value) };
 }
 
 export function isCardKind(value: string): value is CardKind {

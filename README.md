@@ -164,7 +164,7 @@ Vditor 组件内部引入其官方必需样式，这不属于应用布局样式�
 ### 首次设置
 
 1. 将 `.env.example` 复制为 `.env.local`，配置真实 `DATABASE_URL` 和 `AUTH_ORIGIN`。本地默认来源为 `http://localhost:3000`；如果使用其他端口，应同步修改。来源不能带路径或末尾斜杠。
-2. 在专用数据库执行 `npm run db:migrate`。已有迁移包含 posts 示例表、三个认证表及 content_cards 卡片表；如果曾手动建表，应先核对现有结构及迁移记录，不要直接在有冲突的数据库执行。
+2. 在专用数据库执行 `npm run db:migrate`。已有迁移包含 posts 示例表、三个认证表、content_cards 卡片表及 connect_categories 分类表；如果曾手动建表，应先核对现有结构及迁移记录，不要直接在有冲突的数据库执行。
 3. 在交互式终端执行 `npm run auth:admin -- admin`，输入并确认 9–128 字符的独立密码（不回显）。账号限 3–64 位英文字母、数字、下划线、连字符，统一转为小写。Node.js 需支持 `--experimental-strip-types`（22.6+；建议使用项目推荐的 Node.js 24）。
 4. 重启应用，在 footer 点击“登录”。没有数据库配置时本地文章仍可阅读；卡片加载和登录会明确提示服务不可用，写操作不会放行。
 
@@ -193,14 +193,20 @@ Vditor 组件内部引入其官方必需样式，这不属于应用布局样式�
 
 先备份数据库，然后执行 `npm run db:migrate` 应用 `0001_equal_ultron.sql`。它创建 `content_cards`，并一次性导入之前的 6 个 Connect、4 个 Project、2 个 Article 示例；不是站主的真实资料。数据库不可用时显示错误和重试，不回退到静态测试数据。
 
+Connect 分类由 `0002_big_ego.sql` 创建 `connect_categories`，并为 `content_cards` 增加可空的 `category_id` 外键；既有卡片默认保持在顶部空分类。升级已有站点同样需要执行 `npm run db:migrate`。
+
 - 游客只读。登录后，悬浮／键盘聚焦卡片显示右上角圆形编辑和删除按钮；触摸设备直接显示。删除需要确认。
 - 右下角加号打开磨砂玻璃编辑窗。Works 共用一个加号，通过“类型”选择 Project 或 Article，已有 Works 卡片也可切换这两种类型。
-- Works 字段为 Title、Link、Description、Image；Connect 为 Title、UserName、Link、Icon、Image。Image 为 `public/assets` 内的相对路径，例如 `folder/photo.png`，不带 `/assets/` 前缀；Connect 的 Image 优先于 Icon。
+- Connect 新增窗口顶部提供 `card` / `category` 选单，默认 `card`；`category` 仅填写 `Category Name`，保存后在底部创建独立 `PageSection`，即使没有卡片也保留标题。分类名称去除首尾空格，限 1–100 字符，不允许同名。
+- Works 字段为 Title、Link、Description、Image；Connect 为同一行的 Title、UserName，以及 Link、Category、Icon、Image。Category 选单读取现有分类，默认“无分类（顶部）”，卡片置于 Connect 标题下方；选择分类后置于对应区域。编辑卡片可重新分类。每个分类独立执行卡片入场，不互相阻塞。
+- 登录后，分类标题附近悬浮或键盘聚焦时显示圆形重命名、删除、上移、下移图标按钮；触摸设备直接显示。首尾移动按钮自动禁用。删除须确认，卡片通过外键 `ON DELETE SET NULL` 保留并移回顶部空分类。分类顺序持久化；Works 不使用 Connect 分类。
+- Image 为 `public/assets` 内的相对路径，例如 `folder/photo.png`，不带 `/assets/` 前缀；Connect 的 Image 优先于 Icon。
 - Icon 点选器可按英文名称搜索完整的已安装 MUI 图标库，分页加载 SVG。`npm run dev`／`npm run build` 自动运行 `scripts/generate-card-icons.mjs`，在 `.generated/mui-icons.json` 缓存全量图标；不把全库 JS 发给浏览器。standalone 构建包含该缓存，直接调用 `next` 而非 npm 脚本时应先手动运行生成脚本。
 - 图片支持 PNG、JPEG、GIF、WebP、AVIF，最大 10MB。上传自动生成无冲突文件名；保存前修改 Image 路径，会移动／重命名**本次上传**的图片（可使用子目录），同名目标返回冲突、不覆盖。修改原有卡片的图片路径仅更换引用，不会移动共享图片。
 - 卡片与预览统一通过公开的 `/api/cards/assets/[...path]` 读取图片；数据库仍保存 assets 相对路径。新上传／重命名的文件无需重启生产服务即可显示，不依赖 Next.js 启动时的 public 文件索引。
 - 取消编辑、重复上传或删除卡片不会清理图片；未引用文件可在确认无其他用途后人工删除。部署时 `public/assets` 必须可写并持久化，连同 MySQL 一起备份，多实例需共享存储。
 - 保存失败保留草稿；会话过期可在另一标签登录后重试。服务器对全部增删改、上传、移动接口独立校验登录和 Origin。
+- `GET /api/cards?section=connect` 返回 `cards` 与有序 `categories`；`POST /api/cards/categories` 创建分类，`PATCH /api/cards/categories/[id]` 接受 `{ name }` 或 `{ direction: "up" | "down" }`，`DELETE` 删除分类。Works 卡片拒绝非空 `categoryId`，已删除分类不能用于新保存；分类写入、排序和删除使用事务。
 
 `npm run test:cards:integration` 需配置 `CARDS_TEST_DATABASE_URL`（仅接受本机独立 `auth_validation` 数据库）、`CARDS_TEST_BASE_URL`、`CARDS_TEST_ORIGIN` 和 `CARDS_TEST_ASSET_ROOT`（测试应用的绝对 `public/assets` 路径）。测试应用须连接同一独立数据库并预先应用迁移；测试会创建账号、卡片、图片并清理自己创建的数据，不应指向实际发布服务。
 

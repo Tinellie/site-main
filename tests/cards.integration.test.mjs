@@ -23,6 +23,7 @@ test("cards persist in MySQL with authenticated CRUD, icon search and image move
   const username = `cards_${randomUUID().replaceAll("-", "").slice(0, 12)}`;
   const password = "cards-test-password-123";
   const ids = [];
+  const categoryIds = [];
   const files = [];
   let userId;
   let cookie = "";
@@ -42,6 +43,9 @@ test("cards persist in MySQL with authenticated CRUD, icon search and image move
     for (const [route, method, body] of [
       ["/api/cards", "POST", input], ["/api/cards/1", "PATCH", input],
       ["/api/cards/1", "DELETE"], ["/api/cards/assets", "POST"], ["/api/cards/assets", "PATCH", {}],
+      ["/api/cards/categories", "POST", { name: "Guest" }],
+      ["/api/cards/categories/1", "PATCH", { name: "Guest" }],
+      ["/api/cards/categories/1", "DELETE"],
     ]) assert.equal((await request(route, method, body, false)).status, 401);
     const listing = await request("/api/cards?section=connect", "GET", undefined, false);
     assert.equal(listing.status, 200);
@@ -50,6 +54,7 @@ test("cards persist in MySQL with authenticated CRUD, icon search and image move
     assert.equal(login.status, 200, await login.text());
     cookie = login.headers.get("set-cookie").split(";")[0];
     assert.equal((await request("/api/cards", "POST", input, true, "https://evil.invalid")).status, 403);
+    assert.equal((await request("/api/cards/categories", "POST", { name: "Rejected" }, true, "https://evil.invalid")).status, 403);
     assert.equal((await request("/api/cards", "POST", { ...input, link: "javascript:alert(1)" })).status, 400);
     assert.equal((await request("/api/cards", "POST", { ...input, image: "../bad.png" })).status, 400);
     assert.equal((await request("/api/cards", "POST", { ...input, icon: "DefinitelyNotAMuiIcon123" })).status, 400);
@@ -68,6 +73,42 @@ test("cards persist in MySQL with authenticated CRUD, icon search and image move
     assert.equal((await request(`/api/cards/${ids[0]}`, "PATCH", { ...input, kind: "article" })).status, 400);
     const converted = await request(`/api/cards/${ids[1]}`, "PATCH", { ...input, kind: "article" });
     assert.equal(converted.status, 200);
+    for (const name of ["First", "Second"]) {
+      const created = await request("/api/cards/categories", "POST", { name: `${username}-${name}` });
+      assert.equal(created.status, 201);
+      categoryIds.push((await created.json()).category.id);
+    }
+    const categoryUrl = id => `/api/cards/categories/${id}`;
+    assert.equal((await request("/api/cards/categories", "POST", { name: `${username}-First` })).status, 409);
+    assert.equal((await request("/api/cards/categories", "POST", { name: " " })).status, 400);
+    assert.equal((await request(categoryUrl(categoryIds[0]), "PATCH", { name: `${username}-Renamed` })).status, 200);
+    assert.equal((await request(categoryUrl(categoryIds[1]), "PATCH", { name: `${username}-Renamed` })).status, 409);
+    const up = await request(categoryUrl(categoryIds[1]), "PATCH", { direction: "up" });
+    assert.equal(up.status, 200);
+    const upOrder = (await up.json()).categories.map(category => category.id);
+    assert.ok(upOrder.indexOf(categoryIds[1]) < upOrder.indexOf(categoryIds[0]));
+    const down = await request(categoryUrl(categoryIds[1]), "PATCH", { direction: "down" });
+    assert.equal(down.status, 200);
+    const downOrder = (await down.json()).categories.map(category => category.id);
+    assert.ok(downOrder.indexOf(categoryIds[0]) < downOrder.indexOf(categoryIds[1]));
+    assert.equal((await request(categoryUrl(categoryIds[0]), "PATCH", { direction: "invalid" })).status, 400);
+    assert.equal((await request("/api/cards/categories/0", "DELETE")).status, 400);
+    assert.equal((await request(`/api/cards/${ids[0]}`, "PATCH", { ...input, categoryId: categoryIds[0] })).status, 200);
+    assert.equal((await request("/api/cards", "POST", { ...input, kind: "project", categoryId: categoryIds[0] })).status, 400);
+    const withCategories = await (await request("/api/cards?section=connect")).json();
+    assert.equal(withCategories.cards.find(card => card.id === ids[0]).categoryId, categoryIds[0]);
+    assert.equal(withCategories.categories.find(category => category.id === categoryIds[0]).name, `${username}-Renamed`);
+    const [persistedCategories] = await db.execute("SELECT name FROM connect_categories WHERE id=?", [categoryIds[0]]);
+    assert.equal(persistedCategories[0].name, `${username}-Renamed`);
+    const [categorizedCards] = await db.execute("SELECT category_id FROM content_cards WHERE id=?", [ids[0]]);
+    assert.equal(categorizedCards[0].category_id, categoryIds[0]);
+    assert.equal((await request(categoryUrl(categoryIds[0]), "DELETE")).status, 200);
+    const [retainedCards] = await db.execute("SELECT category_id FROM content_cards WHERE id=?", [ids[0]]);
+    assert.equal(retainedCards.length, 1);
+    assert.equal(retainedCards[0].category_id, null);
+    assert.equal((await request(categoryUrl(categoryIds[0]), "DELETE")).status, 404);
+    assert.equal((await request(`/api/cards/${ids[0]}`, "PATCH", { ...input, categoryId: categoryIds[0] })).status, 400);
+    assert.equal((await request(categoryUrl(categoryIds[1]), "DELETE")).status, 200);
     const catalog = await request("/api/icons?q=GitHub");
     assert.ok((await catalog.json()).names.includes("GitHub"));
     const all = await request("/api/icons");
@@ -140,9 +181,10 @@ test("cards persist in MySQL with authenticated CRUD, icon search and image move
     const token = cookie.slice(cookie.indexOf("=") + 1);
     await db.execute("DELETE FROM auth_sessions WHERE token_hash=?", [createHash("sha256").update(token).digest("hex")]);
     assert.equal((await request("/api/cards", "POST", input)).status, 401);
-    console.log("Verified guest reads, five guarded mutations, CSRF, all card kinds, type change, MySQL persistence, 10k+ icons, upload/move and no-overwrite.");
+    console.log("Verified guarded mutations, CSRF, card/category persistence, rename/reorder/delete with retained cards, 10k+ icons and image moves.");
   } finally {
     for (const id of ids) await db.execute("DELETE FROM content_cards WHERE id=?", [id]);
+    for (const id of categoryIds) await db.execute("DELETE FROM connect_categories WHERE id=?", [id]);
     if (userId) await db.execute("DELETE FROM auth_users WHERE id=?", [userId]);
     await db.end();
     if (process.env.CARDS_TEST_ASSET_ROOT) {

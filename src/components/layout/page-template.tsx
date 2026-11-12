@@ -79,7 +79,6 @@ export function PageTemplate({
           ...(paginated && {
             "& > .page-screen:first-of-type": { height: "100cqh" },
           }),
-          overflow: "hidden",
         }}
       >
         {children}
