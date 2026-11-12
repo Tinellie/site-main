@@ -36,15 +36,15 @@ export async function listAssets(segments: string[]): Promise<AssetEntry[] | nul
   // Do not follow symlinks, including intermediate directory segments.
   try {
     for (const segment of segments) {
-      directory = path.join(directory, segment);
+      directory = path.join(/* turbopackIgnore: true */ directory, segment);
       const stat = await fs.lstat(directory);
       if (!stat.isDirectory() || stat.isSymbolicLink()) return null;
     }
-    const entries = await fs.readdir(directory, { withFileTypes: true });
+    const entries = await fs.readdir(/* turbopackIgnore: true */ directory, { withFileTypes: true });
     return await Promise.all(entries
       .filter(entry => entry.isDirectory() || entry.isFile())
       .map(async entry => {
-        const stat = await fs.lstat(path.join(directory, entry.name));
+        const stat = await fs.lstat(path.join(/* turbopackIgnore: true */ directory, entry.name));
         const parts = [...segments, entry.name].map(encodeURIComponent).join("/");
         return {
           name: entry.name,

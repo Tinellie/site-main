@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
     "/api/cards": ["./.generated/mui-icons.json"],
     "/api/cards/*": ["./.generated/mui-icons.json"],
   },
+  outputFileTracingExcludes: {
+    "/*": ["./content/**/*", "./public/assets/**/*", "./data/**/*", "./backups/**/*", "./.env*"],
+  },
 };
 
 export default nextConfig;

@@ -1,0 +1,67 @@
+name: site-main
+
+services:
+  app:
+    image: site-main:local
+    build:
+      context: .
+      target: runner
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    expose:
+      - "3000"
+    volumes:
+      - ./data/blog:/app/content/blog
+      - ./data/assets:/app/public/assets
+      - next_cache:/app/.next/cache
+    networks:
+      gateway:
+        aliases:
+          - site-main-web
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health', {signal: AbortSignal.timeout(8000)}).then(r => {if (!r.ok) process.exit(1)}).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  tools:
+    image: site-main-tools:local
+    build:
+      context: .
+      target: tools
+    profiles:
+      - tools
+    user: node
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data/blog:/app/content/blog
+      - ./data/assets:/app/public/assets
+    networks:
+      - gateway
+
+networks:
+  gateway:
+    external: true
+    name: gateway
+
+volumes:
+  next_cache:

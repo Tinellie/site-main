@@ -19,6 +19,8 @@
     "test:theme": "node --experimental-strip-types --test tests/theme.test.mjs",
     "test:cards": "node --experimental-strip-types --test tests/cards.test.mjs",
     "test:gallery": "node --experimental-strip-types --test tests/gallery.test.mjs",
+    "test:deployment": "node --experimental-strip-types --test tests/deployment.test.mjs",
+    "test:deployment:integration": "node --experimental-strip-types --test tests/deployment.integration.test.mjs",
     "test:gallery:integration": "node --experimental-strip-types --test tests/gallery.integration.test.mjs",
     "test:cards:integration": "node --experimental-strip-types --test tests/cards.integration.test.mjs",
     "test:auth:integration": "node --experimental-strip-types --test tests/auth.integration.test.mjs"
