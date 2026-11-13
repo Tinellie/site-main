@@ -139,9 +139,15 @@ export function CardReveal({ children }: { children: ReactNode }) {
       inert={!visible}
       sx={{
         position: "relative", minWidth: 0, height: "100%",
-        opacity: visible ? 1 : 0,
+        visibility: visible ? "visible" : "hidden",
         transform: visible ? "none" : "translateY(12px)",
-        transition: "opacity 320ms ease-out, transform 320ms ease-out",
+        transition: "transform 320ms ease-out",
+        // Ancestor opacity isolates the backdrop and suppresses blur until the fade ends.
+        "& .MuiCard-root": {
+          opacity: visible ? 1 : 0,
+          transition: "opacity 320ms ease-out",
+          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+        },
         "@media (prefers-reduced-motion: reduce)": { transition: "none", transform: "none" },
       }}
     >

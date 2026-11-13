@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { ViewTransition, type ReactNode } from "react";
 
 import { Box, Container, Typography, type ContainerProps } from "@mui/material";
 import { visuallyHidden } from "@mui/utils";
@@ -40,6 +40,7 @@ export function PageTemplate({
   const contentMaxWidth = maxWidth ?? (fullWidth ? false : "lg");
 
   return (
+    <ViewTransition default="none" enter="page-enter">
     <Container
       component="main"
       id="main-content"
@@ -84,5 +85,6 @@ export function PageTemplate({
         {children}
       </Box>
     </Container>
+    </ViewTransition>
   );
 }

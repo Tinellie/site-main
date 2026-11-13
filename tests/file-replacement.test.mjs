@@ -36,7 +36,7 @@ const content = await load("../src/lib/gallery/file-content.ts", {
   "@/lib/images/svg": svgModule,
 });
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVQImWOo2HLnPwgzwBgAaZQMHZLpORUAAAAASUVORK5CYII=", "base64");
-const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><path d="M0 0h32v32z"/></svg>';
+const svg = '<?xml version="1.0" encoding="utf-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><style>path{fill:red}</style><path d="M0 0h32v32z"/></svg>';
 
 async function setup(t, fileSystem = fs) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "site-replace-"));
@@ -155,7 +155,7 @@ test("Gallery serves replacement bytes with actual MIME, valid ranges and no cac
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("content-type"), "image/svg+xml");
   assert.equal(response.headers.get("cache-control"), "no-store");
-  assert.match(response.headers.get("content-security-policy"), /sandbox/);
+  assert.equal(response.headers.get("content-security-policy"), svgModule.SVG_CONTENT_SECURITY_POLICY);
   assert.equal(await response.text(), svg);
   const partial = await route.GET(new Request("http://localhost/assets/original.png", {
     headers: { Range: "bytes=0-7" },

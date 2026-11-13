@@ -19,9 +19,10 @@ export async function readAssetContentType(file: string, name: string) {
   // Text files remain inert even when they contain HTML or another document format.
   if (kind === "text") return "text/plain; charset=utf-8";
   const detected = await fileTypeFromFile(file);
-  if (detected) return detected.mime;
-  if (kind === "image" && isSvg(await fs.readFile(file))) return "image/svg+xml";
-  return "application/octet-stream";
+  // SVG with an XML declaration is detected as generic XML by file-type.
+  if (kind === "image" && (!detected || detected.mime === "application/xml") &&
+    isSvg(await fs.readFile(file))) return "image/svg+xml";
+  return detected?.mime ?? "application/octet-stream";
 }
 
 export async function validateReplacement(file: File, original: string) {

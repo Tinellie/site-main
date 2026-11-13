@@ -105,3 +105,42 @@ test("independent section queues do not wait for each other's pending images", (
   projects.advance(0);
   assert.deepEqual(projects.revealed, [{ order: 1, at: 100 }]);
 });
+
+test("card fades do not create an ancestor backdrop root during entrance", () => {
+  const component = ts.transpileModule(source, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX,
+    },
+  }).outputText;
+  for (const visible of [false, true]) {
+    const exports = {};
+    let stateIndex = 0;
+    const imports = {
+      react: {
+        createContext: () => ({}), useContext: () => null, useRef: () => ({ current: null }),
+        useEffect: () => {}, useMemo: callback => callback(),
+        useState: initial => [stateIndex++ === 0 ? visible : initial, () => {}],
+      },
+      "@mui/material": { Box: "Box", Alert: "Alert" },
+      "react/jsx-runtime": {
+        jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }),
+      },
+    };
+    runInNewContext(component, { exports, require: name => {
+      assert.ok(name in imports, `Unexpected import: ${name}`);
+      return imports[name];
+    } });
+    const { props } = exports.CardReveal({ children: "card" });
+    const styles = props.sx;
+    assert.equal(styles.opacity, undefined);
+    assert.equal(styles.visibility, visible ? "visible" : "hidden");
+    assert.equal(styles.transform, visible ? "none" : "translateY(12px)");
+    assert.equal(styles.transition, "transform 320ms ease-out");
+    assert.equal(styles["& .MuiCard-root"].opacity, visible ? 1 : 0);
+    assert.equal(styles["& .MuiCard-root"].transition, "opacity 320ms ease-out");
+    assert.equal(styles["& .MuiCard-root"]["@media (prefers-reduced-motion: reduce)"].transition, "none");
+    assert.equal(styles["@media (prefers-reduced-motion: reduce)"].transition, "none");
+    assert.equal(props.inert, !visible);
+    assert.equal(props["aria-hidden"], !visible);
+  }
+});

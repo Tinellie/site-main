@@ -33,7 +33,7 @@ const contentModule = await load("../src/lib/gallery/file-content.ts", {
   "@/lib/auth/http": { AuthError },
   "@/lib/images/svg": svgModule,
 });
-const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><style>rect{fill:red}</style><rect width="32" height="32"/></svg>';
+const svg = '<?xml version="1.0" encoding="utf-8"?>\n<!-- SVG export -->\n<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><style>rect{fill:red}</style><rect width="32" height="32"/></svg>';
 const names = await load("../src/lib/gallery/available-name.ts");
 const assetPaths = await load("../src/features/gallery/asset-path.ts");
 const lock = await load("../src/lib/content-write-lock.ts", { "server-only": {} });
@@ -87,6 +87,25 @@ test("SVG upload persists unchanged, reads with SVG MIME and serves with sandbox
   assert.equal(await response.text(), svg);
   authorized = false;
   await assert.rejects(assets.uploadCardImage(file), { status: 401 });
+});
+
+test("XML detection recognizes validated SVG without treating arbitrary XML as an image", async t => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "site-svg-mime-"));
+  t.after(() => fs.rm(root, { force: true, recursive: true }));
+  const file = path.join(root, "asset");
+  for (const [body, name, expected] of [
+    [svg, "logo.svg", "image/svg+xml"],
+    [svg, "logo.SVG", "image/svg+xml"],
+    [svg, "replaced.png", "image/svg+xml"],
+    [svg.replace(/^<\?xml[^>]+>\n/, ""), "logo.svg", "image/svg+xml"],
+    ['<?xml version="1.0"?><document/>', "other.svg", "application/xml"],
+    ['<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"><script/></svg>', "active.svg", "application/xml"],
+    [svg, "notes.txt", "text/plain; charset=utf-8"],
+    ["not an image", "invalid.svg", "application/octet-stream"],
+  ]) {
+    await fs.writeFile(file, body);
+    assert.equal(await contentModule.readAssetContentType(file, name), expected, name);
+  }
 });
 
 test("shared upload validation rejects spoofed or active SVG and keeps raster validation", async () => {

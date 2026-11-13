@@ -6,18 +6,19 @@
 
 - `PageBackground`：固定全窗口背景，支持 `backgroundImage`、`backgroundColor`、`overlayColor`；通过 MUI Portal 挂在隔离层叠的 `SiteShell` 内，不随正文滚动、不受正文宽度限制、不拦截交互，随所属页面卸载。className 为 `page-background`；与 `PageScreen` 的滚动分页背景独立。
 
-- `SiteShell`：全站外壳与正文滚动恢复，使用 React `ViewTransition` 统一实现 350ms 全屏交叉淡化，包含导航、正文、背景和 footer；不新增包装 DOM，尊重减少动态效果设置。
+- `SiteShell`：全站外壳与正文滚动恢复，使用 React `ViewTransition` 统一实现 220ms 全屏交叉淡化，包含导航、正文、背景和 footer；不新增包装 DOM，尊重减少动态效果设置。
 - `AuthProvider`：维护客户端登录状态，在加载、窗口聚焦和每分钟查询服务端会话；写入权限仍由服务端独立判断。
 - `AuthControls`：footer 的登录、账号、退出和认证错误提示。
 - `PageScrollbar`：全站主滚动区的悬浮滚动条，支持拖动、轨道点击和键盘操作；DOM ID 为 `ss-scrollbar`，滑块 className 为 `psb-thumb`。不占正文宽度，弹窗打开时随正文滚动一起禁用。`PageTemplate hideScrollbar`（默认 false）通过页面数据属性与外壳 CSS 隐藏它，不禁用滚动，也不影响局部滚动条；Home 已启用。
-- `PageTemplate`：main 页面骨架，页面标题和 children 容器；`maxWidth` 支持 MUI 断点、像素数字或 false，可按页面独立设置，默认保留普通页面 lg、分页页面全宽的行为。
+- `PageTemplate`：main 页面骨架，页面标题和 children 容器；`maxWidth` 支持 MUI 断点、像素数字或 false，可按页面独立设置，默认保留普通页面 lg、分页页面全宽的行为。实际 main 由独立 `ViewTransition enter="page-enter"` 包裹，在加载占位结束、真实内容挂载时执行 220ms 渐入；不新增 DOM，也不在真实 main 祖先上添加透明度。自动命名避免连续导航的页面共用入场身份；加载指示仍延后 3 秒显示，减少动态效果时禁用动画。
 - `PageScreen`：固定一窗口高度的分页容器，独立背景、可选 `overlayColor` 背景遮罩、内部溢出滚动；作为 `PageTemplate paginated` 的直接子元素使用。`ignoreNav=false` 时首屏自动扣除实际导航高度，true 时正文与导航重叠。
 - `PageSection`（带小标题的页面分区，使用常见 Section 命名）：接收 `title`、`children` 和可选 `actions` 标题操作区，无额外外边距；标题行使用 `ps-heading`，标题独立居中，分类按钮绝对定位在标题右侧，不占文本布局；xs 窄屏时按钮放到标题下方并预留高度。悬浮或键盘聚焦时显示分类操作。
 - `ResponsiveCardGrid`（响应式卡片矩阵）：使用 MUI Grid，xs/sm/md/lg 分别每行 1/2/3/4 张。
 - `CardLinkAction`（可导航的卡片操作区）：复用 MUI CardActionArea 的 hover、focus 和点击涟漪，内链使用 Next Link，HTTP(S) 外链新标签页打开并设置 rel。
 - `CardRevealGroup` / `CardReveal`：以下 Connect、Works、Blog 主列表与推荐列表、Gallery 卡片集合的公共入场层（不在下方原业务层级逐一展开）。组不产生 DOM；每张卡片增加 `card-reveal` 占位层，图片并行加载及解码后按 DOM 顺序以 100ms 间隔淡入、上浮 12px，动画 320ms。失败或 8 秒超时显示警告并继续；隐藏卡片不可聚焦，减少动态效果时立即显示已就绪卡片。Gallery 预览弹窗不参与。
   Works 的 Projects、Articles 分别使用独立组，分部间不等待，分部内保留顺序；数据请求仍共用 `CardCollection`。
-  入场前 320ms 卡片采用实心背景，抵达后以 500ms 淡入磨砂玻璃；减少动态效果时直接显示最终效果，不支持 backdrop-filter 时保持实心背景。样式统一位于 theme 的 `MuiCssBaseline`。
+  卡片从一开始就使用磨砂玻璃，不再单独播放实心背景到玻璃的过渡；淡入、上浮入场效果保持不变。不支持 backdrop-filter 时使用 90% 不透明底色。玻璃样式统一位于 theme 的 `MuiCard`。
+  淡入透明度应用于 `.MuiCard-root` 自身；`CardReveal` 外层只控制可见性和上浮，避免祖先透明度形成 backdrop root，使磨砂模糊延后到入场动画结束才生效。
 
 ## 登录
 

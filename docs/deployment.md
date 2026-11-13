@@ -217,6 +217,8 @@ curl -I https://suzutsuki.com
 
 检查原有文章、卡片、分类、图片，然后测试登录／退出、保存文章、Gallery 上传／移动／删除与引用警告。新建一张测试图片，重启 app 后确认仍存在，再删除测试图片。
 
+SVG 验收应包含带 `<?xml ...?>` 声明和内联样式的文件，同时检查 Gallery 预览与 Connect 卡片。对实际图片地址执行 `curl -I`，应返回 `Content-Type: image/svg+xml`，且 `Content-Security-Policy` 包含 `style-src 'unsafe-inline'` 和 `sandbox`。若返回 `application/xml`，即使文件树正常、请求状态为 200，浏览器也无法将其作为图片显示；需更新应用中的内容识别逻辑并重新构建部署，不应移除 `nosniff` 或绕过 SVG 安全校验。
+
 Blog 列表已改为请求时读取文章，镜像构建时没有文章也不会生成永久空列表；文章和图片不进入镜像。保持**一个 app 实例**，不要配置多副本或 PM2 cluster。
 
 ## 10. 更新、备份与回退

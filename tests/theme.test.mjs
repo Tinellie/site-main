@@ -28,23 +28,24 @@ test("generic Paper and full-screen dialogs retain their own appearance", () => 
   assert.deepEqual(theme.components.MuiDialog.styleOverrides.paper({ theme, ownerState: { fullScreen: true } }), {});
 });
 
-test("revealing cards stay solid during movement before fading to glass", () => {
+test("resolved page entrances match crossfade timing and respect reduced motion", () => {
   const styles = theme.components.MuiCssBaseline.styleOverrides;
-  const solid = styles[".card-reveal .MuiCard-root"];
-  assert.equal(solid.backgroundColor, "#1e1e1e");
-  assert.equal(solid.backdropFilter, "none");
-  assert.equal(solid.WebkitBackdropFilter, "none");
-  const supported = styles["@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)))"];
-  const glass = supported[".card-reveal[data-revealed='true'] .MuiCard-root"];
-  assert.equal(glass.animation, "card-glass-reveal 500ms ease-out 320ms both");
+  const selector = Object.keys(styles).find(key => key.includes("::view-transition-new(.page-enter)"));
+  assert.ok(selector);
+  assert.equal(styles[selector].animationDuration, "220ms");
+  assert.equal(styles[selector].animationTimingFunction, "ease-in-out");
+  const reduced = styles["@media (prefers-reduced-motion: reduce)"];
+  assert.equal(reduced["::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*)"].animationDuration, "0s !important");
+});
+
+test("revealing cards use the shared glass surface immediately without background animation overrides", () => {
+  const styles = theme.components.MuiCssBaseline.styleOverrides;
+  assert.doesNotMatch(JSON.stringify(styles), /card-glass-reveal|\.card-reveal/);
+  const card = theme.components.MuiCard.styleOverrides.root({ theme });
+  const glass = card["@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)))"];
+  assert.equal(glass.backgroundColor, "rgba(30, 30, 30, 0.45)");
   assert.equal(glass.backdropFilter, "blur(12px) saturate(140%)");
   assert.equal(glass.WebkitBackdropFilter, glass.backdropFilter);
-  assert.deepEqual(supported["@keyframes card-glass-reveal"], {
-    from: { backgroundColor: "#1e1e1e" },
-    to: { backgroundColor: "rgba(30, 30, 30, 0.45)" },
-  });
-  assert.deepEqual(supported["@media (prefers-reduced-motion: reduce)"][".card-reveal[data-revealed='true'] .MuiCard-root"], {
-    animation: "none",
-    backgroundColor: "rgba(30, 30, 30, 0.45)",
-  });
+  assert.equal(card.animation, undefined);
+  assert.equal(glass.animation, undefined);
 });
